@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { VideoView, useVideoPlayer } from 'expo-video';
+import { VideoView, createVideoPlayer } from 'expo-video';
+import type { VideoPlayer } from 'expo-video';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing, BorderRadius } from '../../src/constants';
 
@@ -97,88 +98,87 @@ const FEED = [
 
 type FeedItem = (typeof FEED)[number];
 
-function FeedCardContent({ item }: { item: FeedItem }) {
-  return (
-    <LinearGradient
-      colors={item.gradient}
-      style={styles.feedGradient}
-      start={{ x: 0.25, y: 0 }}
-      end={{ x: 0.75, y: 1 }}
-    >
-      <View style={styles.feedTop}>
-        <View style={styles.feedAuthorRow}>
-          <View style={styles.feedAvatar}>
-            <Text style={styles.feedAvatarInitial}>{item.author[0]}</Text>
-          </View>
-          <View>
-            <Text style={styles.feedAuthorName}>{item.author}</Text>
-            <Text style={styles.feedTimeAgo}>{item.timeAgo}</Text>
-          </View>
-        </View>
-        <TouchableOpacity
-          hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="bookmark-outline" size={20} color="rgba(255,255,255,0.75)" />
-        </TouchableOpacity>
-      </View>
+// ─── Shared video players ─────────────────────────────────────────────────────
+//
+//  One VideoPlayer per feed item, created once in HomeScreen and shared between
+//  the transition preview card (ScrollView phase) and the fullscreen card
+//  (FlatList phase).  Both VideoView instances reference the same player so
+//  there is no visual switch at the handoff moment — the user sees the same
+//  frame grow from the small card into the full screen.
 
-      <View style={styles.feedBottom}>
-        <Text style={styles.feedCardTitle}>{item.title}</Text>
-        <Text style={styles.feedCardDesc}>{item.desc}</Text>
-        <View style={styles.feedMeta}>
-          <View style={styles.feedLocRow}>
-            <Ionicons name="location-outline" size={12} color="rgba(255,255,255,0.4)" />
-            <Text style={styles.feedLoc}>{item.location}</Text>
+// ─── Preview card (transition ScrollView phase) ───────────────────────────────
+//
+//  Shows the real video paused at the current frame.  Gradient is a readability
+//  scrim only — the video is the visual background.
+
+function FeedPreviewCard({ item, player }: { item: FeedItem; player: VideoPlayer }) {
+  return (
+    <View style={styles.feedVideoCard}>
+      <VideoView
+        player={player}
+        style={StyleSheet.absoluteFill}
+        contentFit="cover"
+        nativeControls={false}
+        allowsFullscreen={false}
+      />
+      <LinearGradient
+        colors={['transparent', 'rgba(0,0,0,0.72)']}
+        style={[StyleSheet.absoluteFill, styles.videoOverlay]}
+        start={{ x: 0, y: 0.3 }}
+        end={{ x: 0, y: 1 }}
+      >
+        <View style={styles.feedTop}>
+          <View style={styles.feedAuthorRow}>
+            <View style={styles.feedAvatar}>
+              <Text style={styles.feedAvatarInitial}>{item.author[0]}</Text>
+            </View>
+            <View>
+              <Text style={styles.feedAuthorName}>{item.author}</Text>
+              <Text style={styles.feedTimeAgo}>{item.timeAgo}</Text>
+            </View>
           </View>
-          <View style={styles.feedSavesRow}>
-            <Ionicons name="heart-outline" size={14} color="rgba(255,255,255,0.55)" />
-            <Text style={styles.feedSaves}>{item.saves}</Text>
+          <TouchableOpacity
+            hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="bookmark-outline" size={20} color="rgba(255,255,255,0.75)" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.feedBottom}>
+          <Text style={styles.feedCardTitle}>{item.title}</Text>
+          <Text style={styles.feedCardDesc}>{item.desc}</Text>
+          <View style={styles.feedMeta}>
+            <View style={styles.feedLocRow}>
+              <Ionicons name="location-outline" size={12} color="rgba(255,255,255,0.4)" />
+              <Text style={styles.feedLoc}>{item.location}</Text>
+            </View>
+            <View style={styles.feedSavesRow}>
+              <Ionicons name="heart-outline" size={14} color="rgba(255,255,255,0.55)" />
+              <Text style={styles.feedSaves}>{item.saves}</Text>
+            </View>
           </View>
         </View>
-      </View>
-    </LinearGradient>
+      </LinearGradient>
+    </View>
   );
 }
 
-// ─── Feed video card (FlatList phase only) ────────────────────────────────────
+// ─── Fullscreen video card (FlatList phase) ───────────────────────────────────
 //
-//  Each item creates its own VideoPlayer.  The player is muted and looping by
-//  default.  It plays only when isActive=true (driven by viewability) and isFeed-
-//  Mode=true so nothing runs while the overlay is hidden.  The item's gradient
-//  sits behind the VideoView as a loading placeholder that's visible until the
-//  first frame arrives.
+//  Same shared player — video is already loaded and showing the same frame as
+//  the preview card.  play() is called when isActive becomes true.
 
-function FeedVideoCard({ item, isActive }: { item: FeedItem; isActive: boolean }) {
+function FeedVideoCard({ item, player, isActive }: { item: FeedItem; player: VideoPlayer; isActive: boolean }) {
   const [muted, setMuted] = useState(true);
 
-  const player = useVideoPlayer({ uri: item.videoUri }, p => {
-    p.loop = true;
-    p.muted = true;
-  });
-
-  // ── Debug: log status and errors ──────────────────────────────────────────
   useEffect(() => {
-    const statusSub = player.addListener('statusChange', ({ status, error }) => {
-      console.log(`[video:${item.id}] status →`, status, error ?? '');
-    });
-    const sourceSub = player.addListener('sourceLoad', ({ duration }) => {
-      console.log(`[video:${item.id}] sourceLoad — duration: ${duration}s`);
-    });
-    return () => {
-      statusSub.remove();
-      sourceSub.remove();
-    };
-  }, [player, item.id]);
-
-  useEffect(() => {
-    console.log(`[video:${item.id}] isActive →`, isActive);
     if (isActive) {
       player.play();
     } else {
       player.pause();
     }
-  }, [isActive, player, item.id]);
+  }, [isActive, player]);
 
   useEffect(() => {
     player.muted = muted;
@@ -188,25 +188,13 @@ function FeedVideoCard({ item, isActive }: { item: FeedItem; isActive: boolean }
 
   return (
     <View style={styles.feedVideoCard}>
-      {/* Loading placeholder — same gradient as transition card */}
-      <LinearGradient
-        colors={item.gradient}
-        style={StyleSheet.absoluteFill}
-        start={{ x: 0.25, y: 0 }}
-        end={{ x: 0.75, y: 1 }}
-      />
-
-      {/* Video layer */}
       <VideoView
         player={player}
         style={StyleSheet.absoluteFill}
         contentFit="cover"
         nativeControls={false}
         allowsFullscreen={false}
-        onFirstFrameRender={() => console.log(`[video:${item.id}] first frame rendered ✓`)}
       />
-
-      {/* Scrim + UI overlay */}
       <LinearGradient
         colors={['transparent', 'rgba(0,0,0,0.82)']}
         style={[StyleSheet.absoluteFill, styles.videoOverlay]}
@@ -289,6 +277,31 @@ export default function HomeScreen() {
   // regardless of tab bar / safe-area dimensions.
   const [listHeight, setListHeight] = useState(SCREEN_H);
   const listHeightRef = useRef(SCREEN_H);
+
+  // ── Shared video players ───────────────────────────────────────────────────
+  //
+  //  Created once on first render via useRef so they survive re-renders.
+  //  Both the preview card (ScrollView phase) and the fullscreen card
+  //  (FlatList phase) reference the same player instance — expo-video
+  //  supports multiple VideoViews on one player.  Players are released on
+  //  component unmount to avoid leaking native resources.
+  const feedPlayersRef = useRef<VideoPlayer[] | null>(null);
+  if (feedPlayersRef.current === null) {
+    feedPlayersRef.current = FEED.map(item => {
+      const p = createVideoPlayer({ uri: item.videoUri });
+      p.loop = true;
+      p.muted = true;
+      return p;
+    });
+  }
+  const feedPlayers = feedPlayersRef.current;
+
+  useEffect(() => {
+    return () => {
+      feedPlayersRef.current?.forEach(p => p.release());
+      feedPlayersRef.current = null;
+    };
+  }, []);
 
   // ── Scroll freeze ──────────────────────────────────────────────────────────
   //
@@ -634,9 +647,9 @@ export default function HomeScreen() {
                   ? e => { firstCardTopRef.current = e.nativeEvent.layout.y; }
                   : undefined}
               >
-                <TouchableOpacity style={styles.feedCard} activeOpacity={0.95}>
-                  <FeedCardContent item={item} />
-                </TouchableOpacity>
+                <View style={styles.feedCard}>
+                  <FeedPreviewCard item={item} player={feedPlayers[index]} />
+                </View>
               </Animated.View>
             );
           })}
@@ -712,14 +725,14 @@ export default function HomeScreen() {
                       overflow: 'hidden',
                     }}
                   >
-                    <FeedVideoCard item={item} isActive={isActive} />
+                    <FeedVideoCard item={item} player={feedPlayers[index]} isActive={isActive} />
                   </Animated.View>
                 </View>
               );
             }
             return (
               <View style={{ height: listHeight }}>
-                <FeedVideoCard item={item} isActive={isActive} />
+                <FeedVideoCard item={item} player={feedPlayers[index]} isActive={isActive} />
               </View>
             );
           }}
@@ -984,14 +997,6 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
 
-  // ── Shared feed card content (transition + paged FlatList) ────────────────
-  feedGradient: {
-    flex: 1,
-    justifyContent: 'space-between',
-    padding: Spacing.lg,
-    paddingTop: Spacing.xl,
-    paddingBottom: Spacing.xl,
-  },
   feedTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
