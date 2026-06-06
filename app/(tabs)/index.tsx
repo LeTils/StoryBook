@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  Easing,
   FlatList,
   View,
   Text,
@@ -159,23 +160,83 @@ export default function HomeScreen() {
   // listHeight is measured from the FlatList onLayout so paging is exact
   // regardless of tab bar / safe-area dimensions.
   const [listHeight, setListHeight] = useState(SCREEN_H);
+  const listHeightRef = useRef(SCREEN_H);
+
+  // ── Scroll freeze ──────────────────────────────────────────────────────────
+  //
+  //  Disabled when feed mode activates so the background card cannot drift
+  //  during the 240 ms handoff fade.  Re-enabled after the exit fade completes.
+  const [mainScrollEnabled, setMainScrollEnabled] = useState(true);
+
+  // ── Layout refs for analytical card-position computation ──────────────────
+  //
+  //  feedSectionTopRef  — Y of the feedSection in the ScrollView content.
+  //  firstCardTopRef    — Y of the first feedCardWrapper within feedSection.
+  //  Both are set from onLayout (pre-transform).
+  const feedSectionTopRef = useRef(0);
+  const firstCardTopRef   = useRef(0);
+
+  // ── Morph animated values (JS thread) ─────────────────────────────────────
+  //
+  //  Animate the first overlay card from its exact transition-card position
+  //  (top / height / borderRadius) to a full-screen page simultaneously with
+  //  the opacity fade.  useNativeDriver: false is required for layout props.
+  const overlayCardTopAnim    = useRef(new Animated.Value(0)).current;
+  const overlayCardHeightAnim = useRef(new Animated.Value(FEED_CARD_H)).current;
+  const overlayCardRadiusAnim = useRef(new Animated.Value(0)).current;
 
   // ── Feed mode: enter ───────────────────────────────────────────────────────
   //
-  //  120ms fade: short enough that the underlying ScrollView cannot visibly
-  //  advance past the first card before the overlay is fully opaque.
-  //  The first card is ~740px tall; at 800px/s scroll the user moves ~96px
-  //  during the fade — well within the first card, nowhere near the second.
-  const enterFeedMode = useCallback(() => {
+  //  Compute where the first feed card's top edge sits on screen at this exact
+  //  scroll offset, then seed the morph animations so the overlay card starts
+  //  in exactly that position.  A 240 ms parallel fade + expand then brings
+  //  the card to full-screen, making the handoff feel like a natural growth
+  //  rather than a sudden overlay appearance.
+  //
+  //  feedTranslateY is clamped at –80 for all scrollY ≥ T.feedRise[1] (370),
+  //  and T.feedMode (385) > 370, so the offset is always exactly –80 here.
+  const enterFeedMode = useCallback((currentScrollY: number) => {
     if (isFeedModeRef.current) return;
     isFeedModeRef.current = true;
+
+    const cardTop = Math.max(
+      0,
+      feedSectionTopRef.current + firstCardTopRef.current - currentScrollY - 80,
+    );
+
+    overlayCardTopAnim.setValue(cardTop);
+    overlayCardHeightAnim.setValue(FEED_CARD_H);
+    overlayCardRadiusAnim.setValue(16);
+
     setIsFeedMode(true);
-    Animated.timing(feedOverlayAnim, {
-      toValue: 1,
-      duration: 120,
-      useNativeDriver: true,
-    }).start();
-  }, [feedOverlayAnim]);
+    setMainScrollEnabled(false);
+
+    Animated.parallel([
+      Animated.timing(feedOverlayAnim, {
+        toValue: 1,
+        duration: 240,
+        useNativeDriver: true,
+      }),
+      Animated.timing(overlayCardTopAnim, {
+        toValue: 0,
+        duration: 240,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }),
+      Animated.timing(overlayCardHeightAnim, {
+        toValue: listHeightRef.current,
+        duration: 240,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }),
+      Animated.timing(overlayCardRadiusAnim, {
+        toValue: 0,
+        duration: 240,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }),
+    ]).start();
+  }, [feedOverlayAnim, overlayCardTopAnim, overlayCardHeightAnim, overlayCardRadiusAnim]);
 
   // ── Real-time scroll listener ──────────────────────────────────────────────
   //
@@ -191,7 +252,7 @@ export default function HomeScreen() {
 
       // Feed mode — detect during the gesture, not after
       if (!isFeedModeRef.current && value >= T.feedMode) {
-        enterFeedMode();
+        enterFeedMode(value);
       }
     });
     return () => scrollY.removeListener(id);
@@ -199,12 +260,14 @@ export default function HomeScreen() {
 
   // ── Feed mode: exit ────────────────────────────────────────────────────────
   //
-  //  Reset the underlying ScrollView to y=0 immediately (while the opaque
-  //  overlay still covers it), then fade the overlay out to reveal home state.
+  //  Reset both scroll containers while the overlay is still opaque, then fade
+  //  the overlay out.  mainScrollEnabled is restored in the completion callback
+  //  so the background cannot drift during the exit fade.
+  //  Note: on iOS, scrollTo() works even when scrollEnabled=false (the prop
+  //  only blocks user touch, not programmatic calls).
   const exitFeedMode = useCallback(() => {
     if (!isFeedModeRef.current) return;
 
-    // Reset both scroll containers while the overlay hides what's happening.
     scrollRef.current?.scrollTo({ y: 0, animated: false });
     flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
 
@@ -215,6 +278,7 @@ export default function HomeScreen() {
     }).start(() => {
       isFeedModeRef.current = false;
       setIsFeedMode(false);
+      setMainScrollEnabled(true);
       currentFeedIndex.current = 0;
     });
   }, [feedOverlayAnim]);
@@ -293,6 +357,7 @@ export default function HomeScreen() {
       ════════════════════════════════════════════════════════════════════ */}
       <Animated.ScrollView
         ref={scrollRef}
+        scrollEnabled={mainScrollEnabled}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: true },
@@ -416,6 +481,7 @@ export default function HomeScreen() {
         {/* Transition feed cards — visible during morph, hidden once overlay locks in */}
         <Animated.View
           style={[styles.feedSection, { transform: [{ translateY: feedTranslateY }] }]}
+          onLayout={e => { feedSectionTopRef.current = e.nativeEvent.layout.y; }}
         >
           <Animated.View style={[styles.dividerRow, { opacity: dividerOpacity }]}>
             <View style={styles.dividerLine} />
@@ -432,6 +498,9 @@ export default function HomeScreen() {
                   styles.feedCardWrapper,
                   isFirst && { transform: [{ scale: firstCardScale }] },
                 ]}
+                onLayout={isFirst
+                  ? e => { firstCardTopRef.current = e.nativeEvent.layout.y; }
+                  : undefined}
               >
                 <TouchableOpacity style={styles.feedCard} activeOpacity={0.95}>
                   <FeedCardContent item={item} />
@@ -485,17 +554,42 @@ export default function HomeScreen() {
           onScrollEndDrag={handleFeedScrollEndDrag}
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={viewabilityConfig}
-          onLayout={e => setListHeight(e.nativeEvent.layout.height)}
+          onLayout={e => {
+            const h = e.nativeEvent.layout.height;
+            setListHeight(h);
+            listHeightRef.current = h;
+          }}
           getItemLayout={(_, index) => ({
             length: listHeight,
             offset: listHeight * index,
             index,
           })}
-          renderItem={({ item }) => (
-            <View style={{ height: listHeight }}>
-              <FeedCardContent item={item} />
-            </View>
-          )}
+          renderItem={({ item, index }) => {
+            if (index === 0) {
+              return (
+                <View style={{ height: listHeight }}>
+                  <Animated.View
+                    style={{
+                      position: 'absolute',
+                      left: 0,
+                      right: 0,
+                      top: overlayCardTopAnim,
+                      height: overlayCardHeightAnim,
+                      borderRadius: overlayCardRadiusAnim,
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <FeedCardContent item={item} />
+                  </Animated.View>
+                </View>
+              );
+            }
+            return (
+              <View style={{ height: listHeight }}>
+                <FeedCardContent item={item} />
+              </View>
+            );
+          }}
         />
       </Animated.View>
 
