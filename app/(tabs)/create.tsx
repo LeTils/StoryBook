@@ -4,9 +4,8 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
-  Dimensions,
   Alert,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -16,294 +15,217 @@ import { Colors, Typography, Spacing, BorderRadius } from '../../src/constants';
 // ─── Dimensions ───────────────────────────────────────────────────────────────
 
 const { width: SCREEN_W } = Dimensions.get('window');
-const CARD_W = SCREEN_W - Spacing.lg * 2;
-const SECONDARY_W = (CARD_W - Spacing.md) / 2;
+const H_GUTTER = Spacing.lg;
+const CARD_W    = SCREEN_W - H_GUTTER * 2;
+const SEC_W     = (CARD_W - Spacing.md) / 2;
 
-// ─── Feature list ─────────────────────────────────────────────────────────────
-
-const FEATURES = [
-  { icon: 'images-outline'      as const, label: 'Photos & Videos' },
-  { icon: 'map-outline'         as const, label: 'Maps & Routes'   },
-  { icon: 'calendar-outline'    as const, label: 'Daily Memories'  },
-  { icon: 'stats-chart-outline' as const, label: 'Travel Stats'    },
-];
-
-// ─── Mock route points for the decorative map overlay ─────────────────────────
+// ─── Mock StoryBook journal data ──────────────────────────────────────────────
 //
-// Positions are relative to the hero card (~CARD_W × 200 decorative area).
-// All values work for any phone ≥ 320px wide; they're intentionally imprecise
-// since this is purely a visual motif.
+// Rendered inside the hero card so users immediately understand what a
+// StoryBook looks like — not a feature list, but real trip data.
 
-const ROUTE_DOTS = [
-  { top: 44, left: 44,  size: 7,  opacity: 0.55, active: false },
-  { top: 28, left: 130, size: 12, opacity: 1,    active: true  },
-  { top: 58, left: 214, size: 7,  opacity: 0.50, active: false },
-  { top: 38, left: 294, size: 7,  opacity: 0.45, active: false },
-  { top: 76, left: 88,  size: 4,  opacity: 0.30, active: false },
-  { top: 18, left: 175, size: 4,  opacity: 0.28, active: false },
+const PREVIEW = {
+  title     : 'Italy 2027',
+  location  : 'Florence · Tuscany',
+  day       : 4,
+  totalDays : 10,
+  note      : 'Golden hour at Piazzale Michelangelo. Wine on rooftops.',
+  photos    : 32,
+  videos    : 8,
+  places    : 4,
+  km        : 18,
+};
+
+// ─── Stats data ───────────────────────────────────────────────────────────────
+
+const STATS = [
+  { icon: 'camera-outline'   as const, value: PREVIEW.photos,          label: 'Photos'  },
+  { icon: 'videocam-outline' as const, value: PREVIEW.videos,          label: 'Videos'  },
+  { icon: 'location-outline' as const, value: PREVIEW.places,          label: 'Places'  },
+  { icon: 'walk-outline'     as const, value: `${PREVIEW.km} km`,      label: 'Walked'  },
 ];
-
-// Pre-calculated: midpoint + rotation for lines connecting P0→P1→P2→P3
-const ROUTE_LINES = [
-  { left: 47,  top: 44, width: 91,  rotate: '-9deg'   },
-  { left: 135, top: 49, width: 88,  rotate: '17deg'   },
-  { left: 216, top: 51, width: 83,  rotate: '-14deg'  },
-];
-
-// ─── Decorative route overlay ─────────────────────────────────────────────────
-
-function HeroMapDecoration() {
-  return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      {ROUTE_LINES.map((line, i) => (
-        <View
-          key={i}
-          style={[
-            styles.routeLine,
-            {
-              top: line.top,
-              left: line.left,
-              width: line.width,
-              transform: [{ rotate: line.rotate }],
-            },
-          ]}
-        />
-      ))}
-
-      {ROUTE_DOTS.map((dot, i) => (
-        <View
-          key={i}
-          style={[
-            styles.routeDot,
-            {
-              top: dot.top - dot.size / 2,
-              left: dot.left - dot.size / 2,
-              width: dot.size,
-              height: dot.size,
-              borderRadius: dot.size / 2,
-              opacity: dot.opacity,
-              backgroundColor: dot.active ? Colors.accent : 'rgba(255,255,255,0.8)',
-            },
-          ]}
-        >
-          {dot.active && (
-            <View
-              style={[
-                StyleSheet.absoluteFill,
-                {
-                  borderRadius: dot.size / 2,
-                  borderWidth: 3,
-                  borderColor: 'rgba(231,167,122,0.35)',
-                  margin: -5,
-                },
-              ]}
-            />
-          )}
-        </View>
-      ))}
-    </View>
-  );
-}
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function CreateScreen() {
-  const handleStartStoryBook = () =>
-    Alert.alert('StoryBook', 'StoryBook creation flow — coming soon.');
-  const handlePost = () =>
-    Alert.alert('Post', 'Media picker — coming soon.');
-  const handleMoment = () =>
-    Alert.alert('Moment', 'Quick capture flow — coming soon.');
+  const onStoryBook = () => Alert.alert('StoryBook', 'Creation flow — coming soon.');
+  const onPost      = () => Alert.alert('Post',      'Media picker — coming soon.');
+  const onMoment    = () => Alert.alert('Moment',    'Quick capture — coming soon.');
 
   return (
-    <SafeAreaView style={styles.screen} edges={['top']}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scroll}
-      >
+    <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
+      <View style={styles.layout}>
 
         {/* ── Header ──────────────────────────────────────────────────────── */}
         <View style={styles.header}>
-          <View>
-            <Text style={styles.headerTitle}>Create</Text>
-            <Text style={styles.headerSubtitle}>Start sharing your journey</Text>
-          </View>
+          <Text style={styles.headerTitle}>Create</Text>
           <TouchableOpacity style={styles.closeBtn} activeOpacity={0.75}>
-            <Ionicons name="close" size={20} color={Colors.textPrimary} />
+            <Ionicons name="close" size={19} color={Colors.textPrimary} />
           </TouchableOpacity>
         </View>
 
-        {/* ── Featured StoryBook hero card ─────────────────────────────────── */}
+        {/* ── StoryBook hero card ───────────────────────────────────────────
+            flex: 1 so it fills whatever space remains between the header and
+            the secondary row — no hard-coded height needed.                  */}
         <TouchableOpacity
           style={styles.heroCard}
-          activeOpacity={0.96}
-          onPress={handleStartStoryBook}
+          activeOpacity={0.97}
+          onPress={onStoryBook}
         >
-          {/* Base deep navy gradient — sky/night landscape */}
+          {/* Deep night-sky base */}
           <LinearGradient
-            colors={['#232A62', '#141A3F', '#0D1230']}
+            colors={['#232A62', '#161C42', '#0D1230']}
             style={StyleSheet.absoluteFill}
-            start={{ x: 0.2, y: 0 }}
-            end={{ x: 0.8, y: 1 }}
+            start={{ x: 0.3, y: 0 }}
+            end={{ x: 0.7, y: 1 }}
           />
 
-          {/* Warm amber glow — sunrise/golden-hour feel */}
+          {/* Warm horizon glow — golden-hour atmosphere */}
           <LinearGradient
-            colors={['transparent', 'rgba(184,98,26,0.22)', 'rgba(231,167,122,0.10)']}
+            colors={['transparent', 'rgba(184,98,26,0.30)', 'rgba(184,98,26,0.08)']}
             style={StyleSheet.absoluteFill}
-            start={{ x: 1, y: 0.4 }}
-            end={{ x: 0.1, y: 1 }}
+            start={{ x: 0.8, y: 1 }}
+            end={{ x: 0.1, y: 0.3 }}
           />
 
-          {/* Decorative travel route */}
-          <HeroMapDecoration />
-
-          {/* Readability scrim from mid-card downward */}
+          {/* Bottom readability scrim */}
           <LinearGradient
-            colors={['transparent', 'rgba(10,14,38,0.92)']}
-            style={[StyleSheet.absoluteFill, { top: '35%' }]}
+            colors={['transparent', 'rgba(10,14,38,0.80)']}
+            style={[StyleSheet.absoluteFill, { top: '45%' }]}
             start={{ x: 0, y: 0 }}
             end={{ x: 0, y: 1 }}
           />
 
-          {/* Card content */}
           <View style={styles.heroInner}>
-            {/* Top bar — badge */}
-            <View style={styles.heroTopBar}>
-              <View style={styles.featuredBadge}>
-                <View style={styles.featuredDot} />
-                <Text style={styles.featuredText}>FEATURED</Text>
+
+            {/* Top row ─────────────────────────────────────────────────── */}
+            <View style={styles.heroTopRow}>
+              <View style={styles.journeyBadge}>
+                <View style={styles.journeyDot} />
+                <Text style={styles.journeyBadgeText}>STORYBOOK PREVIEW</Text>
+              </View>
+              <View style={styles.dayPill}>
+                <Text style={styles.dayPillText}>
+                  Day {PREVIEW.day} / {PREVIEW.totalDays}
+                </Text>
               </View>
             </View>
 
-            {/* Bottom content */}
-            <View style={styles.heroBottom}>
-              <Text style={styles.heroTitle}>New StoryBook</Text>
-              <Text style={styles.heroDesc}>
-                Turn a trip into a living travel journal.
+            {/* Spacer — pushes main text toward vertical center */}
+            <View style={{ flex: 1 }} />
+
+            {/* Location + title + note ─────────────────────────────────── */}
+            <View style={styles.heroMid}>
+              <View style={styles.locationRow}>
+                <Ionicons
+                  name="location-outline"
+                  size={12}
+                  color={Colors.accent}
+                />
+                <Text style={styles.locationText}>{PREVIEW.location}</Text>
+              </View>
+
+              <Text style={styles.heroTitle}>{PREVIEW.title}</Text>
+
+              <Text style={styles.heroNote} numberOfLines={1}>
+                {PREVIEW.note}
               </Text>
-
-              {/* Feature grid */}
-              <View style={styles.featureGrid}>
-                {FEATURES.map(f => (
-                  <View key={f.label} style={styles.featureItem}>
-                    <View style={styles.featureIconBox}>
-                      <Ionicons name={f.icon} size={12} color={Colors.accent} />
-                    </View>
-                    <Text style={styles.featureLabel}>{f.label}</Text>
-                  </View>
-                ))}
-              </View>
-
-              {/* CTA */}
-              <TouchableOpacity
-                style={styles.heroCta}
-                activeOpacity={0.88}
-                onPress={handleStartStoryBook}
-              >
-                <Text style={styles.heroCtaText}>Start a StoryBook</Text>
-                <Ionicons name="arrow-forward" size={15} color={Colors.primary} />
-              </TouchableOpacity>
             </View>
+
+            {/* Stats ───────────────────────────────────────────────────── */}
+            <View style={styles.statsRow}>
+              {STATS.map((s, i) => (
+                <React.Fragment key={s.label}>
+                  {i > 0 && <View style={styles.statDivider} />}
+                  <View style={styles.statItem}>
+                    <Ionicons
+                      name={s.icon}
+                      size={14}
+                      color="rgba(255,255,255,0.50)"
+                    />
+                    <Text style={styles.statValue}>{s.value}</Text>
+                    <Text style={styles.statLabel}>{s.label}</Text>
+                  </View>
+                </React.Fragment>
+              ))}
+            </View>
+
+            {/* CTA ─────────────────────────────────────────────────────── */}
+            <TouchableOpacity
+              style={styles.heroCta}
+              activeOpacity={0.88}
+              onPress={onStoryBook}
+            >
+              <Text style={styles.heroCtaText}>Start a StoryBook</Text>
+              <Ionicons name="arrow-forward" size={15} color={Colors.primary} />
+            </TouchableOpacity>
+
           </View>
         </TouchableOpacity>
 
-        {/* ── Quick Share section ──────────────────────────────────────────── */}
-        <View style={styles.sectionHead}>
-          <Text style={styles.sectionTitle}>Quick Share</Text>
-          <Text style={styles.sectionSubtitle}>
-            Share a moment or a memory in seconds.
-          </Text>
-        </View>
-
-        {/* ── Secondary cards row ──────────────────────────────────────────── */}
+        {/* ── Secondary row ─────────────────────────────────────────────── */}
         <View style={styles.secondaryRow}>
 
-          {/* Post card */}
+          {/* Post */}
           <TouchableOpacity
-            style={[styles.secondaryCard, { width: SECONDARY_W }]}
-            activeOpacity={0.93}
-            onPress={handlePost}
+            style={[styles.secondaryCard, { width: SEC_W }]}
+            activeOpacity={0.92}
+            onPress={onPost}
           >
-            <View style={styles.secondaryCardInner}>
-              {/* Icon */}
-              <View style={[styles.secondaryIconBox, styles.postIconBox]}>
-                <Ionicons name="camera-outline" size={20} color={Colors.primary} />
-              </View>
+            <View style={styles.secIconBox}>
+              <Ionicons name="camera-outline" size={19} color={Colors.primary} />
+            </View>
+            <Text style={styles.secTitle}>Post</Text>
+            <Text style={styles.secDesc}>Photo, video or carousel.</Text>
 
-              {/* Text */}
-              <Text style={styles.secondaryTitle}>Post</Text>
-              <Text style={styles.secondaryDesc}>
-                Share a photo, video or carousel.
-              </Text>
-
-              {/* Photo stack preview */}
-              <View style={styles.photoStack}>
-                {[
-                  { bg: '#7B8EC8', rotate: '-7deg', offset: 0  },
-                  { bg: '#5A9B84', rotate: '-2deg', offset: 6  },
-                  { bg: '#E7A77A', rotate: '4deg',  offset: 12 },
-                ].map((p, i) => (
-                  <View
-                    key={i}
-                    style={[
-                      styles.photoThumb,
-                      {
-                        backgroundColor: p.bg,
-                        left: p.offset,
-                        transform: [{ rotate: p.rotate }],
-                        zIndex: i,
-                      },
-                    ]}
-                  >
-                    <Ionicons name="image-outline" size={12} color="rgba(255,255,255,0.75)" />
-                  </View>
-                ))}
-              </View>
+            {/* Stacked photo thumbnails */}
+            <View style={styles.photoStack}>
+              {[
+                { bg: '#7B8EC8', rotate: '-6deg', left: 0  },
+                { bg: '#5A9B84', rotate: '-1deg', left: 10 },
+                { bg: Colors.accent, rotate: '5deg',  left: 20 },
+              ].map((p, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.photoThumb,
+                    { backgroundColor: p.bg, left: p.left, transform: [{ rotate: p.rotate }] },
+                  ]}
+                />
+              ))}
             </View>
           </TouchableOpacity>
 
-          {/* Moment card */}
+          {/* Moment */}
           <TouchableOpacity
-            style={[styles.secondaryCard, { width: SECONDARY_W }]}
-            activeOpacity={0.93}
-            onPress={handleMoment}
+            style={[styles.secondaryCard, { width: SEC_W }]}
+            activeOpacity={0.92}
+            onPress={onMoment}
           >
-            <View style={styles.secondaryCardInner}>
-              {/* Icon */}
-              <View style={[styles.secondaryIconBox, styles.momentIconBox]}>
-                <Ionicons name="flash-outline" size={20} color="#7B5CCC" />
-              </View>
+            <View style={[styles.secIconBox, styles.momentIconBox]}>
+              <Ionicons name="flash-outline" size={19} color="#7B5CCC" />
+            </View>
+            <Text style={styles.secTitle}>Moment</Text>
+            <Text style={styles.secDesc}>Share right now.</Text>
+            <Text style={styles.expiryText}>Expires in 24h</Text>
 
-              {/* Text */}
-              <Text style={styles.secondaryTitle}>Moment</Text>
-              <Text style={styles.secondaryDesc}>
-                Share what's happening right now.
-              </Text>
-              <Text style={styles.momentExpiry}>Expires in 24h.</Text>
-
-              {/* Story circles preview */}
-              <View style={styles.storyCirclesRow}>
-                {['#7B8EC8', '#5A9B84', '#E7A77A'].map((color, i) => (
-                  <View
-                    key={i}
-                    style={[
-                      styles.storyCircle,
-                      {
-                        backgroundColor: color,
-                        marginLeft: i > 0 ? -10 : 0,
-                        zIndex: 3 - i,
-                      },
-                    ]}
-                  />
-                ))}
-              </View>
+            {/* Overlapping story circles */}
+            <View style={styles.storyRow}>
+              {['#7B8EC8', '#5A9B84', Colors.accent].map((bg, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.storyCircle,
+                    { backgroundColor: bg, marginLeft: i > 0 ? -9 : 0, zIndex: 3 - i },
+                  ]}
+                />
+              ))}
             </View>
           </TouchableOpacity>
 
         </View>
 
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
@@ -315,38 +237,33 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  scroll: {
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.xxxl,
+  layout: {
+    flex: 1,
+    paddingHorizontal: H_GUTTER,
+    paddingBottom: Spacing.sm,
+    gap: Spacing.md,
   },
 
   // ── Header ────────────────────────────────────────────────────────────────
   header: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.xl,
+    paddingTop: Spacing.sm,
   },
   headerTitle: {
     ...Typography.title1,
     color: Colors.textPrimary,
-    marginBottom: 4,
-  },
-  headerSubtitle: {
-    ...Typography.callout,
-    color: Colors.textSecondary,
   },
   closeBtn: {
-    width: 40,
-    height: 40,
+    width: 38,
+    height: 38,
     borderRadius: BorderRadius.full,
     backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
@@ -356,88 +273,115 @@ const styles = StyleSheet.create({
 
   // ── Hero card ─────────────────────────────────────────────────────────────
   heroCard: {
-    width: CARD_W,
+    flex: 1,
     borderRadius: BorderRadius.xl,
     overflow: 'hidden',
     shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.28,
-    shadowRadius: 40,
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.26,
+    shadowRadius: 36,
     elevation: 12,
-    marginBottom: Spacing.xl,
   },
   heroInner: {
+    flex: 1,
     padding: Spacing.lg,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing.lg,
-    justifyContent: 'space-between',
-    minHeight: 340,
+    paddingBottom: Spacing.md,
   },
-  heroTopBar: {
+
+  heroTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  featuredBadge: {
+  journeyBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: 'rgba(255,255,255,0.10)',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: BorderRadius.full,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.18)',
+    borderColor: 'rgba(255,255,255,0.15)',
   },
-  featuredDot: {
+  journeyDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
     backgroundColor: Colors.accent,
   },
-  featuredText: {
+  journeyBadgeText: {
     ...Typography.overline,
-    color: 'rgba(255,255,255,0.75)',
+    color: 'rgba(255,255,255,0.70)',
+  },
+  dayPill: {
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  dayPillText: {
+    ...Typography.caption2,
+    color: 'rgba(255,255,255,0.55)',
   },
 
-  heroBottom: {
-    gap: 10,
+  heroMid: {
+    gap: 6,
+    marginBottom: Spacing.md,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  locationText: {
+    ...Typography.caption1,
+    color: Colors.accent,
+    fontWeight: '600',
   },
   heroTitle: {
-    ...Typography.title2,
+    ...Typography.title1,
     color: Colors.textInverse,
   },
-  heroDesc: {
+  heroNote: {
     ...Typography.callout,
-    color: 'rgba(255,255,255,0.58)',
-    lineHeight: 22,
+    color: 'rgba(255,255,255,0.48)',
+    fontStyle: 'italic',
   },
 
-  featureGrid: {
+  // Stats
+  statsRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-    marginTop: 4,
-    marginBottom: 4,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    borderRadius: BorderRadius.md,
+    paddingVertical: Spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    marginBottom: Spacing.md,
   },
-  featureItem: {
-    flexDirection: 'row',
+  statItem: {
+    flex: 1,
     alignItems: 'center',
-    gap: 6,
-    width: '46%',
+    gap: 3,
   },
-  featureIconBox: {
-    width: 22,
-    height: 22,
-    borderRadius: 6,
-    backgroundColor: 'rgba(231,167,122,0.18)',
-    alignItems: 'center',
-    justifyContent: 'center',
+  statValue: {
+    ...Typography.headline,
+    color: Colors.textInverse,
   },
-  featureLabel: {
-    ...Typography.caption1,
-    color: 'rgba(255,255,255,0.65)',
+  statLabel: {
+    ...Typography.caption2,
+    color: 'rgba(255,255,255,0.38)',
+  },
+  statDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    alignSelf: 'center',
   },
 
+  // CTA
   heroCta: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -446,122 +390,88 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.accent,
     borderRadius: BorderRadius.md,
     paddingVertical: 14,
-    marginTop: 6,
   },
   heroCtaText: {
     ...Typography.headline,
     color: Colors.primary,
   },
 
-  // ── Map decoration ────────────────────────────────────────────────────────
-  routeLine: {
-    position: 'absolute',
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-  },
-  routeDot: {
-    position: 'absolute',
-  },
-
-  // ── Quick Share section ───────────────────────────────────────────────────
-  sectionHead: {
-    marginBottom: Spacing.md,
-    gap: 4,
-  },
-  sectionTitle: {
-    ...Typography.title3,
-    color: Colors.textPrimary,
-  },
-  sectionSubtitle: {
-    ...Typography.callout,
-    color: Colors.textSecondary,
-  },
-
-  // ── Secondary cards ───────────────────────────────────────────────────────
+  // ── Secondary row ─────────────────────────────────────────────────────────
   secondaryRow: {
     flexDirection: 'row',
     gap: Spacing.md,
   },
   secondaryCard: {
-    borderRadius: BorderRadius.xl,
     backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.md,
+    paddingBottom: Spacing.md,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.07,
-    shadowRadius: 18,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 14,
+    elevation: 3,
     borderWidth: 1,
     borderColor: Colors.borderLight,
+    minHeight: 148,
     overflow: 'hidden',
   },
-  secondaryCardInner: {
-    padding: Spacing.md,
-    paddingBottom: Spacing.lg,
-    minHeight: 210,
-    justifyContent: 'flex-start',
-    gap: 6,
-  },
-  secondaryIconBox: {
-    width: 42,
-    height: 42,
-    borderRadius: BorderRadius.md,
+  secIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: BorderRadius.sm,
+    backgroundColor: Colors.surfaceSecondary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 6,
-  },
-  postIconBox: {
-    backgroundColor: Colors.surfaceSecondary,
+    marginBottom: Spacing.sm,
   },
   momentIconBox: {
     backgroundColor: 'rgba(123,92,204,0.10)',
   },
-  secondaryTitle: {
-    ...Typography.title3,
+  secTitle: {
+    ...Typography.headline,
     color: Colors.textPrimary,
+    marginBottom: 2,
   },
-  secondaryDesc: {
+  secDesc: {
     ...Typography.footnote,
     color: Colors.textSecondary,
-    lineHeight: 18,
   },
-  momentExpiry: {
+  expiryText: {
     ...Typography.caption2,
     color: Colors.textTertiary,
-    marginTop: -2,
+    marginTop: 2,
   },
 
-  // ── Photo stack preview ───────────────────────────────────────────────────
+  // Photo stack
   photoStack: {
-    flexDirection: 'row',
-    height: 44,
-    marginTop: 'auto',
-    alignItems: 'flex-end',
-    paddingTop: Spacing.sm,
+    position: 'absolute',
+    right: Spacing.md,
+    bottom: Spacing.md,
+    width: 62,
+    height: 40,
   },
   photoThumb: {
     position: 'absolute',
-    width: 38,
-    height: 38,
+    width: 36,
+    height: 36,
     borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: Colors.surface,
   },
 
-  // ── Story circles preview ─────────────────────────────────────────────────
-  storyCirclesRow: {
+  // Story circles
+  storyRow: {
+    position: 'absolute',
+    right: Spacing.md,
+    bottom: Spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 'auto',
-    paddingTop: Spacing.sm,
-    height: 44,
-    alignSelf: 'flex-start',
   },
   storyCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     borderWidth: 2,
     borderColor: Colors.surface,
   },
