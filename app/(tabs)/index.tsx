@@ -171,24 +171,73 @@ function FeedPreviewCard({ item, player }: { item: FeedItem; player: VideoPlayer
 
 function FeedVideoCard({ item, player, isActive }: { item: FeedItem; player: VideoPlayer; isActive: boolean }) {
   const insets = useSafeAreaInsets();
-  const [muted, setMuted] = useState(true);
+
+  // ── Tap-to-pause state ─────────────────────────────────────────────────────
+  const [userPaused, setUserPaused] = useState(false);
+  const indicatorOpacity = useRef(new Animated.Value(0)).current;
+  const indicatorAnimRef = useRef<Animated.CompositeAnimation | null>(null);
+
+  // ── Resume / reset tracking ────────────────────────────────────────────────
+  //
+  //  When isActive goes false, save currentTime + timestamp.
+  //  When isActive returns true:
+  //    < 3 s elapsed → restore saved position (resume).
+  //    ≥ 3 s elapsed → seek to 0 (restart).
+  const deactivatedAtRef = useRef<number | null>(null);
+  const resumeTimeRef    = useRef(0);
 
   useEffect(() => {
     if (isActive) {
+      if (deactivatedAtRef.current !== null) {
+        const elapsed = Date.now() - deactivatedAtRef.current;
+        player.currentTime = elapsed < 3000 ? resumeTimeRef.current : 0;
+        deactivatedAtRef.current = null;
+      }
+      // Always play when becoming active; clear any user-paused state.
+      setUserPaused(false);
+      player.muted = true;
       player.play();
+      // Ensure indicator is hidden.
+      indicatorAnimRef.current?.stop();
+      Animated.timing(indicatorOpacity, { toValue: 0, duration: 200, useNativeDriver: true }).start();
     } else {
+      resumeTimeRef.current  = player.currentTime;
+      deactivatedAtRef.current = Date.now();
       player.pause();
     }
-  }, [isActive, player]);
+  }, [isActive, player, indicatorOpacity]);
 
-  useEffect(() => {
-    player.muted = muted;
-  }, [muted, player]);
+  // ── Tap handler ────────────────────────────────────────────────────────────
+  const handleTap = useCallback(() => {
+    indicatorAnimRef.current?.stop();
 
-  const toggleMute = useCallback(() => setMuted(m => !m), []);
+    if (userPaused) {
+      // Resume — briefly flash play icon then hide.
+      player.play();
+      setUserPaused(false);
+      indicatorOpacity.setValue(1);
+      indicatorAnimRef.current = Animated.sequence([
+        Animated.delay(500),
+        Animated.timing(indicatorOpacity, { toValue: 0, duration: 300, useNativeDriver: true }),
+      ]);
+      indicatorAnimRef.current.start();
+    } else {
+      // Pause — fade in pause icon; it stays visible until the user resumes.
+      player.pause();
+      setUserPaused(true);
+      indicatorAnimRef.current = Animated.timing(indicatorOpacity, {
+        toValue: 1, duration: 150, useNativeDriver: true,
+      });
+      indicatorAnimRef.current.start();
+    }
+  }, [userPaused, player, indicatorOpacity]);
 
   return (
-    <View style={styles.feedVideoCard}>
+    <TouchableOpacity
+      style={styles.feedVideoCard}
+      activeOpacity={1}
+      onPress={handleTap}
+    >
       <VideoView
         player={player}
         style={StyleSheet.absoluteFill}
@@ -212,25 +261,12 @@ function FeedVideoCard({ item, player, isActive }: { item: FeedItem; player: Vid
               <Text style={styles.feedTimeAgo}>{item.timeAgo}</Text>
             </View>
           </View>
-          <View style={styles.videoActions}>
-            <TouchableOpacity
-              hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
-              activeOpacity={0.7}
-              onPress={toggleMute}
-            >
-              <Ionicons
-                name={muted ? 'volume-mute-outline' : 'volume-high-outline'}
-                size={20}
-                color="rgba(255,255,255,0.75)"
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="bookmark-outline" size={20} color="rgba(255,255,255,0.75)" />
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="bookmark-outline" size={20} color="rgba(255,255,255,0.75)" />
+          </TouchableOpacity>
         </View>
 
         <View style={styles.feedBottom}>
@@ -248,7 +284,19 @@ function FeedVideoCard({ item, player, isActive }: { item: FeedItem; player: Vid
           </View>
         </View>
       </LinearGradient>
-    </View>
+
+      {/* Centered play/pause indicator — visible only during tap interaction */}
+      <Animated.View
+        style={[styles.videoIndicator, { opacity: indicatorOpacity }]}
+        pointerEvents="none"
+      >
+        <Ionicons
+          name={userPaused ? 'pause-circle' : 'play-circle'}
+          size={72}
+          color="rgba(255,255,255,0.88)"
+        />
+      </Animated.View>
+    </TouchableOpacity>
   );
 }
 
@@ -1115,9 +1163,9 @@ const styles = StyleSheet.create({
     // paddingTop is set inline per-component: preview uses Spacing.xl,
     // fullscreen card adds insets.top so content clears the Dynamic Island.
   },
-  videoActions: {
-    flexDirection: 'row',
+  videoIndicator: {
+    ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
-    gap: Spacing.md,
+    justifyContent: 'center',
   },
 });
