@@ -190,7 +190,7 @@ function FeedVideoCard({ item, player, isActive }: { item: FeedItem; player: Vid
     if (isActive) {
       if (deactivatedAtRef.current !== null) {
         const elapsed = Date.now() - deactivatedAtRef.current;
-        player.currentTime = elapsed < 3000 ? resumeTimeRef.current : 0;
+        player.currentTime = elapsed < 1500 ? resumeTimeRef.current : 0;
         deactivatedAtRef.current = null;
       }
       // Always play when becoming active; clear any user-paused state.
