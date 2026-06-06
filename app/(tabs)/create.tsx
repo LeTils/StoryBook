@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  TextInput,
   ScrollView,
+  Dimensions,
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,402 +13,556 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing, BorderRadius } from '../../src/constants';
 
-const JOURNEY_SUGGESTIONS = [
-  'Italy 2027',
-  'Japan Cherry Blossom',
-  'New York Weekend',
-  'Roadtrip Canada',
-  'Morocco Desert Route',
+// ─── Dimensions ───────────────────────────────────────────────────────────────
+
+const { width: SCREEN_W } = Dimensions.get('window');
+const CARD_W = SCREEN_W - Spacing.lg * 2;
+const SECONDARY_W = (CARD_W - Spacing.md) / 2;
+
+// ─── Feature list ─────────────────────────────────────────────────────────────
+
+const FEATURES = [
+  { icon: 'images-outline'      as const, label: 'Photos & Videos' },
+  { icon: 'map-outline'         as const, label: 'Maps & Routes'   },
+  { icon: 'calendar-outline'    as const, label: 'Daily Memories'  },
+  { icon: 'stats-chart-outline' as const, label: 'Travel Stats'    },
 ];
 
-const PRIVACY_OPTIONS = [
-  {
-    key: 'private' as const,
-    label: 'Private',
-    desc: 'Only you can see this journey',
-    icon: 'lock-closed-outline' as const,
-  },
-  {
-    key: 'followers' as const,
-    label: 'Followers',
-    desc: 'People who follow you',
-    icon: 'people-outline' as const,
-  },
-  {
-    key: 'public' as const,
-    label: 'Public',
-    desc: 'Anyone on Storybook',
-    icon: 'globe-outline' as const,
-  },
+// ─── Mock route points for the decorative map overlay ─────────────────────────
+//
+// Positions are relative to the hero card (~CARD_W × 200 decorative area).
+// All values work for any phone ≥ 320px wide; they're intentionally imprecise
+// since this is purely a visual motif.
+
+const ROUTE_DOTS = [
+  { top: 44, left: 44,  size: 7,  opacity: 0.55, active: false },
+  { top: 28, left: 130, size: 12, opacity: 1,    active: true  },
+  { top: 58, left: 214, size: 7,  opacity: 0.50, active: false },
+  { top: 38, left: 294, size: 7,  opacity: 0.45, active: false },
+  { top: 76, left: 88,  size: 4,  opacity: 0.30, active: false },
+  { top: 18, left: 175, size: 4,  opacity: 0.28, active: false },
 ];
 
-const COLLECT_ITEMS = [
-  { icon: 'images-outline' as const, label: 'Photos & videos' },
-  { icon: 'navigate-outline' as const, label: 'GPS route' },
-  { icon: 'location-outline' as const, label: 'Places visited' },
-  { icon: 'sunny-outline' as const, label: 'Daily highlights' },
+// Pre-calculated: midpoint + rotation for lines connecting P0→P1→P2→P3
+const ROUTE_LINES = [
+  { left: 47,  top: 44, width: 91,  rotate: '-9deg'   },
+  { left: 135, top: 49, width: 88,  rotate: '17deg'   },
+  { left: 216, top: 51, width: 83,  rotate: '-14deg'  },
 ];
+
+// ─── Decorative route overlay ─────────────────────────────────────────────────
+
+function HeroMapDecoration() {
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      {ROUTE_LINES.map((line, i) => (
+        <View
+          key={i}
+          style={[
+            styles.routeLine,
+            {
+              top: line.top,
+              left: line.left,
+              width: line.width,
+              transform: [{ rotate: line.rotate }],
+            },
+          ]}
+        />
+      ))}
+
+      {ROUTE_DOTS.map((dot, i) => (
+        <View
+          key={i}
+          style={[
+            styles.routeDot,
+            {
+              top: dot.top - dot.size / 2,
+              left: dot.left - dot.size / 2,
+              width: dot.size,
+              height: dot.size,
+              borderRadius: dot.size / 2,
+              opacity: dot.opacity,
+              backgroundColor: dot.active ? Colors.accent : 'rgba(255,255,255,0.8)',
+            },
+          ]}
+        >
+          {dot.active && (
+            <View
+              style={[
+                StyleSheet.absoluteFill,
+                {
+                  borderRadius: dot.size / 2,
+                  borderWidth: 3,
+                  borderColor: 'rgba(231,167,122,0.35)',
+                  margin: -5,
+                },
+              ]}
+            />
+          )}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+// ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function CreateScreen() {
-  const [journeyName, setJourneyName] = useState('');
-  const [privacy, setPrivacy] = useState<'private' | 'followers' | 'public'>('private');
-
-  const handleCreate = () => {
-    if (!journeyName.trim()) {
-      Alert.alert('Name your adventure', 'Give this journey a title before starting.');
-      return;
-    }
-    Alert.alert('Journey started!', `"${journeyName}" begins now. Go make memories.`);
-  };
+  const handleStartStoryBook = () =>
+    Alert.alert('StoryBook', 'StoryBook creation flow — coming soon.');
+  const handlePost = () =>
+    Alert.alert('Post', 'Media picker — coming soon.');
+  const handleMoment = () =>
+    Alert.alert('Moment', 'Quick capture flow — coming soon.');
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.screen} edges={['top']}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scroll}
-        keyboardShouldPersistTaps="handled"
       >
-        {/* Header */}
+
+        {/* ── Header ──────────────────────────────────────────────────────── */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>New adventure</Text>
-          <Text style={styles.headerSubtitle}>
-            Every great story starts with a destination.
+          <View>
+            <Text style={styles.headerTitle}>Create</Text>
+            <Text style={styles.headerSubtitle}>Start sharing your journey</Text>
+          </View>
+          <TouchableOpacity style={styles.closeBtn} activeOpacity={0.75}>
+            <Ionicons name="close" size={20} color={Colors.textPrimary} />
+          </TouchableOpacity>
+        </View>
+
+        {/* ── Featured StoryBook hero card ─────────────────────────────────── */}
+        <TouchableOpacity
+          style={styles.heroCard}
+          activeOpacity={0.96}
+          onPress={handleStartStoryBook}
+        >
+          {/* Base deep navy gradient — sky/night landscape */}
+          <LinearGradient
+            colors={['#232A62', '#141A3F', '#0D1230']}
+            style={StyleSheet.absoluteFill}
+            start={{ x: 0.2, y: 0 }}
+            end={{ x: 0.8, y: 1 }}
+          />
+
+          {/* Warm amber glow — sunrise/golden-hour feel */}
+          <LinearGradient
+            colors={['transparent', 'rgba(184,98,26,0.22)', 'rgba(231,167,122,0.10)']}
+            style={StyleSheet.absoluteFill}
+            start={{ x: 1, y: 0.4 }}
+            end={{ x: 0.1, y: 1 }}
+          />
+
+          {/* Decorative travel route */}
+          <HeroMapDecoration />
+
+          {/* Readability scrim from mid-card downward */}
+          <LinearGradient
+            colors={['transparent', 'rgba(10,14,38,0.92)']}
+            style={[StyleSheet.absoluteFill, { top: '35%' }]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+          />
+
+          {/* Card content */}
+          <View style={styles.heroInner}>
+            {/* Top bar — badge */}
+            <View style={styles.heroTopBar}>
+              <View style={styles.featuredBadge}>
+                <View style={styles.featuredDot} />
+                <Text style={styles.featuredText}>FEATURED</Text>
+              </View>
+            </View>
+
+            {/* Bottom content */}
+            <View style={styles.heroBottom}>
+              <Text style={styles.heroTitle}>New StoryBook</Text>
+              <Text style={styles.heroDesc}>
+                Turn a trip into a living travel journal.
+              </Text>
+
+              {/* Feature grid */}
+              <View style={styles.featureGrid}>
+                {FEATURES.map(f => (
+                  <View key={f.label} style={styles.featureItem}>
+                    <View style={styles.featureIconBox}>
+                      <Ionicons name={f.icon} size={12} color={Colors.accent} />
+                    </View>
+                    <Text style={styles.featureLabel}>{f.label}</Text>
+                  </View>
+                ))}
+              </View>
+
+              {/* CTA */}
+              <TouchableOpacity
+                style={styles.heroCta}
+                activeOpacity={0.88}
+                onPress={handleStartStoryBook}
+              >
+                <Text style={styles.heroCtaText}>Start a StoryBook</Text>
+                <Ionicons name="arrow-forward" size={15} color={Colors.primary} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+
+        {/* ── Quick Share section ──────────────────────────────────────────── */}
+        <View style={styles.sectionHead}>
+          <Text style={styles.sectionTitle}>Quick Share</Text>
+          <Text style={styles.sectionSubtitle}>
+            Share a moment or a memory in seconds.
           </Text>
         </View>
 
-        {/* Journey name */}
-        <View style={styles.nameSection}>
-          <Text style={styles.sectionLabel}>NAME YOUR JOURNEY</Text>
-          <TextInput
-            style={[styles.nameInput, journeyName.length > 0 && styles.nameInputActive]}
-            placeholder="e.g. Italy 2027..."
-            placeholderTextColor={Colors.textTertiary}
-            value={journeyName}
-            onChangeText={setJourneyName}
-            autoFocus
-            returnKeyType="next"
-            maxLength={40}
-            selectionColor={Colors.accent}
-          />
-          <View style={[styles.inputLine, journeyName.length > 0 && styles.inputLineActive]} />
-          <Text style={styles.charCount}>{journeyName.length}/40</Text>
-        </View>
+        {/* ── Secondary cards row ──────────────────────────────────────────── */}
+        <View style={styles.secondaryRow}>
 
-        {/* Suggestions */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>QUICK START</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.suggestionsScroll}
-          >
-            {JOURNEY_SUGGESTIONS.map((s) => (
-              <TouchableOpacity
-                key={s}
-                style={[styles.suggestionChip, journeyName === s && styles.suggestionChipActive]}
-                onPress={() => setJourneyName(s)}
-                activeOpacity={0.75}
-              >
-                <Text style={[styles.suggestionText, journeyName === s && styles.suggestionTextActive]}>
-                  {s}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-
-        {/* Privacy */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>WHO CAN SEE THIS?</Text>
-          <View style={styles.privacyList}>
-            {PRIVACY_OPTIONS.map((option) => {
-              const isActive = privacy === option.key;
-              return (
-                <TouchableOpacity
-                  key={option.key}
-                  style={[styles.privacyCard, isActive && styles.privacyCardActive]}
-                  onPress={() => setPrivacy(option.key)}
-                  activeOpacity={0.8}
-                >
-                  <View style={[styles.privacyIconBox, isActive && styles.privacyIconBoxActive]}>
-                    <Ionicons
-                      name={option.icon}
-                      size={18}
-                      color={isActive ? Colors.textInverse : Colors.textSecondary}
-                    />
-                  </View>
-                  <View style={styles.privacyBody}>
-                    <Text style={[styles.privacyLabel, isActive && styles.privacyLabelActive]}>
-                      {option.label}
-                    </Text>
-                    <Text style={styles.privacyDesc}>{option.desc}</Text>
-                  </View>
-                  <View style={[styles.radioOuter, isActive && styles.radioOuterActive]}>
-                    {isActive && <View style={styles.radioInner} />}
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-
-        {/* What storybook collects */}
-        <View style={styles.section}>
-          <View style={styles.collectCard}>
-            <Text style={styles.collectTitle}>Storybook will capture</Text>
-            <View style={styles.collectGrid}>
-              {COLLECT_ITEMS.map((item) => (
-                <View key={item.label} style={styles.collectItem}>
-                  <View style={styles.collectIconBox}>
-                    <Ionicons name={item.icon} size={18} color={Colors.accent} />
-                  </View>
-                  <Text style={styles.collectLabel}>{item.label}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        </View>
-
-        {/* CTA */}
-        <View style={styles.ctaSection}>
+          {/* Post card */}
           <TouchableOpacity
-            style={[styles.ctaButton, !journeyName.trim() && styles.ctaButtonDisabled]}
-            onPress={handleCreate}
-            activeOpacity={0.87}
+            style={[styles.secondaryCard, { width: SECONDARY_W }]}
+            activeOpacity={0.93}
+            onPress={handlePost}
           >
-            <LinearGradient
-              colors={['#1E2456', '#0F1230']}
-              style={styles.ctaGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            >
-              <Text style={styles.ctaText}>Start journey</Text>
-              <Ionicons name="arrow-forward" size={18} color={Colors.textInverse} />
-            </LinearGradient>
+            <View style={styles.secondaryCardInner}>
+              {/* Icon */}
+              <View style={[styles.secondaryIconBox, styles.postIconBox]}>
+                <Ionicons name="camera-outline" size={20} color={Colors.primary} />
+              </View>
+
+              {/* Text */}
+              <Text style={styles.secondaryTitle}>Post</Text>
+              <Text style={styles.secondaryDesc}>
+                Share a photo, video or carousel.
+              </Text>
+
+              {/* Photo stack preview */}
+              <View style={styles.photoStack}>
+                {[
+                  { bg: '#7B8EC8', rotate: '-7deg', offset: 0  },
+                  { bg: '#5A9B84', rotate: '-2deg', offset: 6  },
+                  { bg: '#E7A77A', rotate: '4deg',  offset: 12 },
+                ].map((p, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      styles.photoThumb,
+                      {
+                        backgroundColor: p.bg,
+                        left: p.offset,
+                        transform: [{ rotate: p.rotate }],
+                        zIndex: i,
+                      },
+                    ]}
+                  >
+                    <Ionicons name="image-outline" size={12} color="rgba(255,255,255,0.75)" />
+                  </View>
+                ))}
+              </View>
+            </View>
           </TouchableOpacity>
+
+          {/* Moment card */}
+          <TouchableOpacity
+            style={[styles.secondaryCard, { width: SECONDARY_W }]}
+            activeOpacity={0.93}
+            onPress={handleMoment}
+          >
+            <View style={styles.secondaryCardInner}>
+              {/* Icon */}
+              <View style={[styles.secondaryIconBox, styles.momentIconBox]}>
+                <Ionicons name="flash-outline" size={20} color="#7B5CCC" />
+              </View>
+
+              {/* Text */}
+              <Text style={styles.secondaryTitle}>Moment</Text>
+              <Text style={styles.secondaryDesc}>
+                Share what's happening right now.
+              </Text>
+              <Text style={styles.momentExpiry}>Expires in 24h.</Text>
+
+              {/* Story circles preview */}
+              <View style={styles.storyCirclesRow}>
+                {['#7B8EC8', '#5A9B84', '#E7A77A'].map((color, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      styles.storyCircle,
+                      {
+                        backgroundColor: color,
+                        marginLeft: i > 0 ? -10 : 0,
+                        zIndex: 3 - i,
+                      },
+                    ]}
+                  />
+                ))}
+              </View>
+            </View>
+          </TouchableOpacity>
+
         </View>
+
       </ScrollView>
     </SafeAreaView>
   );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
     backgroundColor: Colors.background,
   },
   scroll: {
+    paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.xxxl,
   },
 
-  // Header
+  // ── Header ────────────────────────────────────────────────────────────────
   header: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing.xxl,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.xl,
   },
   headerTitle: {
     ...Typography.title1,
     color: Colors.textPrimary,
-    marginBottom: Spacing.sm,
+    marginBottom: 4,
   },
   headerSubtitle: {
-    ...Typography.body,
+    ...Typography.callout,
     color: Colors.textSecondary,
   },
-
-  // Name section
-  nameSection: {
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.xxl,
-  },
-  sectionLabel: {
-    ...Typography.overline,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.md,
-  },
-  nameInput: {
-    ...Typography.title2,
-    color: Colors.textPrimary,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: 0,
-  },
-  nameInputActive: {
-    color: Colors.textPrimary,
-  },
-  inputLine: {
-    height: 2,
-    backgroundColor: Colors.border,
-    borderRadius: 1,
-    marginTop: 2,
-  },
-  inputLineActive: {
-    backgroundColor: Colors.accent,
-  },
-  charCount: {
-    ...Typography.caption2,
-    color: Colors.textTertiary,
-    textAlign: 'right',
-    marginTop: Spacing.sm,
-  },
-
-  section: {
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.xxl,
-  },
-
-  // Suggestions
-  suggestionsScroll: {
-    gap: Spacing.sm,
-    paddingRight: Spacing.lg,
-  },
-  suggestionChip: {
-    backgroundColor: Colors.surface,
+  closeBtn: {
+    width: 40,
+    height: 40,
     borderRadius: BorderRadius.full,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 9,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-  },
-  suggestionChipActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  suggestionText: {
-    ...Typography.subhead,
-    color: Colors.textSecondary,
-  },
-  suggestionTextActive: {
-    color: Colors.textInverse,
-    fontWeight: '600',
-  },
-
-  // Privacy
-  privacyList: {
-    gap: Spacing.sm,
-  },
-  privacyCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    gap: Spacing.md,
-  },
-  privacyCardActive: {
-    borderColor: Colors.primary,
-  },
-  privacyIconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: BorderRadius.sm,
-    backgroundColor: Colors.surfaceSecondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  privacyIconBoxActive: {
-    backgroundColor: Colors.primary,
-  },
-  privacyBody: {
-    flex: 1,
-  },
-  privacyLabel: {
-    ...Typography.headline,
-    color: Colors.textSecondary,
-  },
-  privacyLabelActive: {
-    color: Colors.textPrimary,
-  },
-  privacyDesc: {
-    ...Typography.caption1,
-    color: Colors.textTertiary,
-    marginTop: 2,
-  },
-  radioOuter: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: Colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  radioOuterActive: {
-    borderColor: Colors.primary,
-  },
-  radioInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: Colors.primary,
-  },
-
-  // Collect card
-  collectCard: {
-    backgroundColor: Colors.surfaceSecondary,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.lg,
-  },
-  collectTitle: {
-    ...Typography.headline,
-    color: Colors.textPrimary,
-    marginBottom: Spacing.lg,
-  },
-  collectGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.md,
-  },
-  collectItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    width: '44%',
-  },
-  collectIconBox: {
-    width: 32,
-    height: 32,
-    borderRadius: BorderRadius.sm,
-    backgroundColor: Colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
     borderWidth: 1,
     borderColor: Colors.border,
-  },
-  collectLabel: {
-    ...Typography.subhead,
-    color: Colors.textSecondary,
-    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
   },
 
-  // CTA
-  ctaSection: {
-    paddingHorizontal: Spacing.lg,
-  },
-  ctaButton: {
-    borderRadius: BorderRadius.lg,
+  // ── Hero card ─────────────────────────────────────────────────────────────
+  heroCard: {
+    width: CARD_W,
+    borderRadius: BorderRadius.xl,
     overflow: 'hidden',
     shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.28,
+    shadowRadius: 40,
+    elevation: 12,
+    marginBottom: Spacing.xl,
   },
-  ctaButtonDisabled: {
-    opacity: 0.45,
+  heroInner: {
+    padding: Spacing.lg,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.lg,
+    justifyContent: 'space-between',
+    minHeight: 340,
   },
-  ctaGradient: {
-    paddingVertical: 18,
-    paddingHorizontal: Spacing.xl,
+  heroTopBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  featuredBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+  },
+  featuredDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.accent,
+  },
+  featuredText: {
+    ...Typography.overline,
+    color: 'rgba(255,255,255,0.75)',
+  },
+
+  heroBottom: {
+    gap: 10,
+  },
+  heroTitle: {
+    ...Typography.title2,
+    color: Colors.textInverse,
+  },
+  heroDesc: {
+    ...Typography.callout,
+    color: 'rgba(255,255,255,0.58)',
+    lineHeight: 22,
+  },
+
+  featureGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    width: '46%',
+  },
+  featureIconBox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    backgroundColor: 'rgba(231,167,122,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  featureLabel: {
+    ...Typography.caption1,
+    color: 'rgba(255,255,255,0.65)',
+  },
+
+  heroCta: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.sm,
+    gap: 8,
+    backgroundColor: Colors.accent,
+    borderRadius: BorderRadius.md,
+    paddingVertical: 14,
+    marginTop: 6,
   },
-  ctaText: {
+  heroCtaText: {
     ...Typography.headline,
-    color: Colors.textInverse,
+    color: Colors.primary,
+  },
+
+  // ── Map decoration ────────────────────────────────────────────────────────
+  routeLine: {
+    position: 'absolute',
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+  },
+  routeDot: {
+    position: 'absolute',
+  },
+
+  // ── Quick Share section ───────────────────────────────────────────────────
+  sectionHead: {
+    marginBottom: Spacing.md,
+    gap: 4,
+  },
+  sectionTitle: {
+    ...Typography.title3,
+    color: Colors.textPrimary,
+  },
+  sectionSubtitle: {
+    ...Typography.callout,
+    color: Colors.textSecondary,
+  },
+
+  // ── Secondary cards ───────────────────────────────────────────────────────
+  secondaryRow: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+  },
+  secondaryCard: {
+    borderRadius: BorderRadius.xl,
+    backgroundColor: Colors.surface,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.07,
+    shadowRadius: 18,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+    overflow: 'hidden',
+  },
+  secondaryCardInner: {
+    padding: Spacing.md,
+    paddingBottom: Spacing.lg,
+    minHeight: 210,
+    justifyContent: 'flex-start',
+    gap: 6,
+  },
+  secondaryIconBox: {
+    width: 42,
+    height: 42,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  postIconBox: {
+    backgroundColor: Colors.surfaceSecondary,
+  },
+  momentIconBox: {
+    backgroundColor: 'rgba(123,92,204,0.10)',
+  },
+  secondaryTitle: {
+    ...Typography.title3,
+    color: Colors.textPrimary,
+  },
+  secondaryDesc: {
+    ...Typography.footnote,
+    color: Colors.textSecondary,
+    lineHeight: 18,
+  },
+  momentExpiry: {
+    ...Typography.caption2,
+    color: Colors.textTertiary,
+    marginTop: -2,
+  },
+
+  // ── Photo stack preview ───────────────────────────────────────────────────
+  photoStack: {
+    flexDirection: 'row',
+    height: 44,
+    marginTop: 'auto',
+    alignItems: 'flex-end',
+    paddingTop: Spacing.sm,
+  },
+  photoThumb: {
+    position: 'absolute',
+    width: 38,
+    height: 38,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: Colors.surface,
+  },
+
+  // ── Story circles preview ─────────────────────────────────────────────────
+  storyCirclesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 'auto',
+    paddingTop: Spacing.sm,
+    height: 44,
+    alignSelf: 'flex-start',
+  },
+  storyCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: Colors.surface,
   },
 });
