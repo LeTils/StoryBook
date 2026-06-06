@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing, BorderRadius } from '../../src/constants';
 
@@ -64,24 +65,28 @@ const FEED = [
     location: 'Tokyo, Japan', timeAgo: '7h ago',
     desc: 'Neon lights, ramen at midnight, temples at dawn. Tokyo never sleeps.',
     gradient: ['#1C1472', '#0E0A40', '#060320'] as const, saves: 128,
+    videoUri: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4',
   },
   {
     id: '2', title: 'Iceland Roadtrip', author: 'Marc D.',
     location: 'Iceland', timeAgo: '1d ago',
     desc: 'Epic landscapes, waterfalls, and endless roads with no destination.',
     gradient: ['#0D3557', '#072440', '#03101E'] as const, saves: 92,
+    videoUri: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
   },
   {
     id: '3', title: 'Lost in Marrakesh', author: 'Léa P.',
     location: 'Morocco', timeAgo: '2d ago',
     desc: 'Spices, souks, and rooftop sunsets over the ancient medina.',
     gradient: ['#7A4010', '#4A2508', '#1E0F03'] as const, saves: 215,
+    videoUri: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4',
   },
   {
     id: '4', title: 'Amalfi at Dawn', author: 'Thomas K.',
     location: 'Italy', timeAgo: '3d ago',
     desc: 'The coast before the crowds. Pure silence and the smell of citrus.',
     gradient: ['#8B3A1A', '#4A1D0C', '#200D05'] as const, saves: 67,
+    videoUri: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/VolkswagenGTIReview.mp4',
   },
 ];
 
@@ -136,6 +141,112 @@ function FeedCardContent({ item }: { item: FeedItem }) {
   );
 }
 
+// ─── Feed video card (FlatList phase only) ────────────────────────────────────
+//
+//  Each item creates its own VideoPlayer.  The player is muted and looping by
+//  default.  It plays only when isActive=true (driven by viewability) and isFeed-
+//  Mode=true so nothing runs while the overlay is hidden.  The item's gradient
+//  sits behind the VideoView as a loading placeholder that's visible until the
+//  first frame arrives.
+
+function FeedVideoCard({ item, isActive }: { item: FeedItem; isActive: boolean }) {
+  const [muted, setMuted] = useState(true);
+
+  const player = useVideoPlayer({ uri: item.videoUri }, p => {
+    p.loop = true;
+    p.muted = true;
+  });
+
+  useEffect(() => {
+    if (isActive) {
+      player.play();
+    } else {
+      player.pause();
+    }
+  }, [isActive, player]);
+
+  useEffect(() => {
+    player.muted = muted;
+  }, [muted, player]);
+
+  const toggleMute = useCallback(() => setMuted(m => !m), []);
+
+  return (
+    <View style={styles.feedVideoCard}>
+      {/* Loading placeholder — same gradient as transition card */}
+      <LinearGradient
+        colors={item.gradient}
+        style={StyleSheet.absoluteFill}
+        start={{ x: 0.25, y: 0 }}
+        end={{ x: 0.75, y: 1 }}
+      />
+
+      {/* Video layer */}
+      <VideoView
+        player={player}
+        style={StyleSheet.absoluteFill}
+        contentFit="cover"
+        nativeControls={false}
+        allowsFullscreen={false}
+      />
+
+      {/* Scrim + UI overlay */}
+      <LinearGradient
+        colors={['transparent', 'rgba(0,0,0,0.82)']}
+        style={[StyleSheet.absoluteFill, styles.videoOverlay]}
+        start={{ x: 0, y: 0.3 }}
+        end={{ x: 0, y: 1 }}
+      >
+        <View style={styles.feedTop}>
+          <View style={styles.feedAuthorRow}>
+            <View style={styles.feedAvatar}>
+              <Text style={styles.feedAvatarInitial}>{item.author[0]}</Text>
+            </View>
+            <View>
+              <Text style={styles.feedAuthorName}>{item.author}</Text>
+              <Text style={styles.feedTimeAgo}>{item.timeAgo}</Text>
+            </View>
+          </View>
+          <View style={styles.videoActions}>
+            <TouchableOpacity
+              hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
+              activeOpacity={0.7}
+              onPress={toggleMute}
+            >
+              <Ionicons
+                name={muted ? 'volume-mute-outline' : 'volume-high-outline'}
+                size={20}
+                color="rgba(255,255,255,0.75)"
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="bookmark-outline" size={20} color="rgba(255,255,255,0.75)" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.feedBottom}>
+          <Text style={styles.feedCardTitle}>{item.title}</Text>
+          <Text style={styles.feedCardDesc}>{item.desc}</Text>
+          <View style={styles.feedMeta}>
+            <View style={styles.feedLocRow}>
+              <Ionicons name="location-outline" size={12} color="rgba(255,255,255,0.4)" />
+              <Text style={styles.feedLoc}>{item.location}</Text>
+            </View>
+            <View style={styles.feedSavesRow}>
+              <Ionicons name="heart-outline" size={14} color="rgba(255,255,255,0.55)" />
+              <Text style={styles.feedSaves}>{item.saves}</Text>
+            </View>
+          </View>
+        </View>
+      </LinearGradient>
+    </View>
+  );
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
@@ -155,7 +266,8 @@ export default function HomeScreen() {
   const [isFeedMode, setIsFeedMode] = useState(false);
   const feedOverlayAnim  = useRef(new Animated.Value(0)).current;
   const flatListRef      = useRef<FlatList<FeedItem>>(null);
-  const currentFeedIndex = useRef(0);
+  const currentFeedIndex  = useRef(0);
+  const [activeFeedIndex, setActiveFeedIndex] = useState(0);
 
   // listHeight is measured from the FlatList onLayout so paging is exact
   // regardless of tab bar / safe-area dimensions.
@@ -280,6 +392,7 @@ export default function HomeScreen() {
       setIsFeedMode(false);
       setMainScrollEnabled(true);
       currentFeedIndex.current = 0;
+      setActiveFeedIndex(0);
     });
   }, [feedOverlayAnim]);
 
@@ -296,10 +409,13 @@ export default function HomeScreen() {
   }, [exitFeedMode]);
 
   // Track which FlatList page is currently visible.
+  // setActiveFeedIndex is stable so it's safe to capture in the ref callback.
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 60 }).current;
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
     if (viewableItems.length > 0) {
-      currentFeedIndex.current = viewableItems[0].index ?? 0;
+      const idx = viewableItems[0].index ?? 0;
+      currentFeedIndex.current = idx;
+      setActiveFeedIndex(idx);
     }
   }).current;
 
@@ -565,6 +681,7 @@ export default function HomeScreen() {
             index,
           })}
           renderItem={({ item, index }) => {
+            const isActive = isFeedMode && activeFeedIndex === index;
             if (index === 0) {
               return (
                 <View style={{ height: listHeight }}>
@@ -579,14 +696,14 @@ export default function HomeScreen() {
                       overflow: 'hidden',
                     }}
                   >
-                    <FeedCardContent item={item} />
+                    <FeedVideoCard item={item} isActive={isActive} />
                   </Animated.View>
                 </View>
               );
             }
             return (
               <View style={{ height: listHeight }}>
-                <FeedCardContent item={item} />
+                <FeedVideoCard item={item} isActive={isActive} />
               </View>
             );
           }}
@@ -963,5 +1080,21 @@ const styles = StyleSheet.create({
   chipDay: {
     ...Typography.subhead,
     color: 'rgba(255,255,255,0.5)',
+  },
+
+  // ── Feed video card ───────────────────────────────────────────────────────
+  feedVideoCard: {
+    flex: 1,
+  },
+  videoOverlay: {
+    justifyContent: 'space-between',
+    padding: Spacing.lg,
+    paddingTop: Spacing.xl,
+    paddingBottom: Spacing.xl,
+  },
+  videoActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
   },
 });
