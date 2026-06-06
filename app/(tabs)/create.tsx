@@ -102,7 +102,7 @@ export default function CreateScreen() {
             <View style={styles.heroTopRow}>
               <View style={styles.journeyBadge}>
                 <View style={styles.journeyDot} />
-                <Text style={styles.journeyBadgeText}>STORYBOOK PREVIEW</Text>
+                <Text style={styles.journeyBadgeText}>JOURNEY PREVIEW</Text>
               </View>
               <View style={styles.dayPill}>
                 <Text style={styles.dayPillText}>
@@ -156,12 +156,20 @@ export default function CreateScreen() {
               activeOpacity={0.88}
               onPress={onStoryBook}
             >
-              <Text style={styles.heroCtaText}>Start a StoryBook</Text>
+              <Text style={styles.heroCtaText}>Start Journey</Text>
               <Ionicons name="arrow-forward" size={15} color={Colors.primary} />
             </TouchableOpacity>
 
           </View>
         </TouchableOpacity>
+
+        {/* ── Quick Share section header ───────────────────────────────── */}
+        <View style={styles.quickShareHead}>
+          <Text style={styles.quickShareTitle}>Quick Share</Text>
+          <Text style={styles.quickShareSubtitle}>
+            Share a moment or a memory in seconds.
+          </Text>
+        </View>
 
         {/* ── Secondary row ─────────────────────────────────────────────── */}
         <View style={styles.secondaryRow}>
@@ -394,6 +402,19 @@ const styles = StyleSheet.create({
   heroCtaText: {
     ...Typography.headline,
     color: Colors.primary,
+  },
+
+  // ── Quick Share section ───────────────────────────────────────────────────
+  quickShareHead: {
+    gap: 3,
+  },
+  quickShareTitle: {
+    ...Typography.headline,
+    color: Colors.textPrimary,
+  },
+  quickShareSubtitle: {
+    ...Typography.footnote,
+    color: Colors.textSecondary,
   },
 
   // ── Secondary row ─────────────────────────────────────────────────────────
