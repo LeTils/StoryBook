@@ -123,7 +123,7 @@ function FeedPreviewCard({ item, player }: { item: FeedItem; player: VideoPlayer
       />
       <LinearGradient
         colors={['transparent', 'rgba(0,0,0,0.72)']}
-        style={[StyleSheet.absoluteFill, styles.videoOverlay]}
+        style={[StyleSheet.absoluteFill, styles.videoOverlay, { paddingTop: Spacing.xl }]}
         start={{ x: 0, y: 0.3 }}
         end={{ x: 0, y: 1 }}
       >
@@ -170,6 +170,7 @@ function FeedPreviewCard({ item, player }: { item: FeedItem; player: VideoPlayer
 //  the preview card.  play() is called when isActive becomes true.
 
 function FeedVideoCard({ item, player, isActive }: { item: FeedItem; player: VideoPlayer; isActive: boolean }) {
+  const insets = useSafeAreaInsets();
   const [muted, setMuted] = useState(true);
 
   useEffect(() => {
@@ -197,7 +198,7 @@ function FeedVideoCard({ item, player, isActive }: { item: FeedItem; player: Vid
       />
       <LinearGradient
         colors={['transparent', 'rgba(0,0,0,0.82)']}
-        style={[StyleSheet.absoluteFill, styles.videoOverlay]}
+        style={[StyleSheet.absoluteFill, styles.videoOverlay, { paddingTop: insets.top + Spacing.lg }]}
         start={{ x: 0, y: 0.3 }}
         end={{ x: 0, y: 1 }}
       >
@@ -1110,8 +1111,9 @@ const styles = StyleSheet.create({
   videoOverlay: {
     justifyContent: 'space-between',
     padding: Spacing.lg,
-    paddingTop: Spacing.xl,
     paddingBottom: Spacing.xl,
+    // paddingTop is set inline per-component: preview uses Spacing.xl,
+    // fullscreen card adds insets.top so content clears the Dynamic Island.
   },
   videoActions: {
     flexDirection: 'row',
