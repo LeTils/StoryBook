@@ -65,28 +65,28 @@ const FEED = [
     location: 'Tokyo, Japan', timeAgo: '7h ago',
     desc: 'Neon lights, ramen at midnight, temples at dawn. Tokyo never sleeps.',
     gradient: ['#1C1472', '#0E0A40', '#060320'] as const, saves: 128,
-    videoUri: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4',
+    videoUri: 'https://cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-576p.mp4',
   },
   {
     id: '2', title: 'Iceland Roadtrip', author: 'Marc D.',
     location: 'Iceland', timeAgo: '1d ago',
     desc: 'Epic landscapes, waterfalls, and endless roads with no destination.',
     gradient: ['#0D3557', '#072440', '#03101E'] as const, saves: 92,
-    videoUri: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+    videoUri: 'https://media.w3.org/2010/05/sintel/trailer.mp4',
   },
   {
     id: '3', title: 'Lost in Marrakesh', author: 'Léa P.',
     location: 'Morocco', timeAgo: '2d ago',
     desc: 'Spices, souks, and rooftop sunsets over the ancient medina.',
     gradient: ['#7A4010', '#4A2508', '#1E0F03'] as const, saves: 215,
-    videoUri: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4',
+    videoUri: 'https://media.w3.org/2010/05/video/movie_300.mp4',
   },
   {
     id: '4', title: 'Amalfi at Dawn', author: 'Thomas K.',
     location: 'Italy', timeAgo: '3d ago',
     desc: 'The coast before the crowds. Pure silence and the smell of citrus.',
     gradient: ['#8B3A1A', '#4A1D0C', '#200D05'] as const, saves: 67,
-    videoUri: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/VolkswagenGTIReview.mp4',
+    videoUri: 'https://cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-720p.mp4',
   },
 ];
 
@@ -157,13 +157,28 @@ function FeedVideoCard({ item, isActive }: { item: FeedItem; isActive: boolean }
     p.muted = true;
   });
 
+  // ── Debug: log status and errors ──────────────────────────────────────────
   useEffect(() => {
+    const statusSub = player.addListener('statusChange', ({ status, error }) => {
+      console.log(`[video:${item.id}] status →`, status, error ?? '');
+    });
+    const sourceSub = player.addListener('sourceLoad', ({ duration }) => {
+      console.log(`[video:${item.id}] sourceLoad — duration: ${duration}s`);
+    });
+    return () => {
+      statusSub.remove();
+      sourceSub.remove();
+    };
+  }, [player, item.id]);
+
+  useEffect(() => {
+    console.log(`[video:${item.id}] isActive →`, isActive);
     if (isActive) {
       player.play();
     } else {
       player.pause();
     }
-  }, [isActive, player]);
+  }, [isActive, player, item.id]);
 
   useEffect(() => {
     player.muted = muted;
@@ -188,6 +203,7 @@ function FeedVideoCard({ item, isActive }: { item: FeedItem; isActive: boolean }
         contentFit="cover"
         nativeControls={false}
         allowsFullscreen={false}
+        onFirstFrameRender={() => console.log(`[video:${item.id}] first frame rendered ✓`)}
       />
 
       {/* Scrim + UI overlay */}
