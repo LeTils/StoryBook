@@ -16,28 +16,49 @@ import { Colors, Typography, Spacing, BorderRadius } from '../../src/constants';
 // ─── Dimensions ───────────────────────────────────────────────────────────────
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
-const H_GUTTER  = Spacing.lg;
-const CARD_W    = SCREEN_W - H_GUTTER * 2;
-const SEC_W     = (CARD_W - Spacing.md) / 2;
-// Hero height is a fixed proportion so the rest of the screen always shows.
-const HERO_H    = Math.round(SCREEN_H * 0.42);
+const H_GUTTER = Spacing.lg;
+const CARD_W   = SCREEN_W - H_GUTTER * 2;
+const SEC_W    = (CARD_W - Spacing.md) / 2;
+const HERO_H   = Math.round(SCREEN_H * 0.44);
 
 // ─── Travel image ─────────────────────────────────────────────────────────────
 //
-// A dramatic road-trip photo that immediately communicates "journey".
-// Replace with a locally bundled asset once the design team provides one.
+// Winding coastal road — open road energy, clearly a journey.
+// Swap for a bundled asset once design provides one.
 
 const TRAVEL_IMAGE = {
-  uri: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=900&q=80&auto=format&fit=crop',
+  uri: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=900&q=82&auto=format&fit=crop',
 };
 
-// ─── Journey flow steps ───────────────────────────────────────────────────────
+// ─── Journey waypoint icons ───────────────────────────────────────────────────
+//
+// Replaces the 4-step text list: a compact horizontal icon path that
+// communicates the flow without competing with the photo.
 
-const STEPS = [
-  'Choose a destination',
-  'Add your travel dates',
-  'Capture memories along the way',
-  'Get your StoryBook automatically',
+const WAYPOINTS = [
+  'location-outline',
+  'calendar-outline',
+  'camera-outline',
+  'book-outline',
+] as const;
+
+// ─── Post preview photos ──────────────────────────────────────────────────────
+//
+// Simulate a photo fan with travel-palette gradients so the Post card
+// instantly reads as "share photos" without any copy.
+
+const FAN_PHOTOS = [
+  { colors: ['#2D5A8E', '#1A3352'] as const, rotate: '-13deg', tx: -22 },
+  { colors: ['#3D7A5C', '#1E4A35'] as const, rotate: '-2deg',  tx: 0   },
+  { colors: ['#8E5226', '#5C2E10'] as const, rotate: '11deg',  tx: 22  },
+];
+
+// ─── Moment preview circles ───────────────────────────────────────────────────
+
+const STORY_PREVIEWS = [
+  { colors: ['#6B3AA0', '#3A1A60'] as const },
+  { colors: ['#3A8A5C', '#1A5232'] as const },
+  { colors: ['#C06A30', '#7A3C14'] as const },
 ];
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -60,73 +81,84 @@ export default function CreateScreen() {
         </View>
 
         {/* ── Journey hero card ─────────────────────────────────────────────
-            Fixed height so the Quick Share section is always visible below. */}
+            Photo is the hero: overlay is nearly transparent at the top so the
+            landscape shows clearly; only the bottom third gets dark enough to
+            hold white text.                                                  */}
         <TouchableOpacity
           style={styles.heroCard}
           activeOpacity={0.97}
           onPress={onJourney}
         >
-          {/* Travel photo background */}
-          <Image source={TRAVEL_IMAGE} style={StyleSheet.absoluteFill} resizeMode="cover" />
+          <Image
+            source={TRAVEL_IMAGE}
+            style={StyleSheet.absoluteFill}
+            resizeMode="cover"
+          />
 
-          {/* Full-card dark overlay — lifts legibility on any photo */}
+          {/* 4-stop gradient — clear at top, dark at bottom */}
           <LinearGradient
-            colors={['rgba(10,14,38,0.30)', 'rgba(10,14,38,0.78)']}
+            colors={[
+              'rgba(8,12,32,0.06)',
+              'rgba(8,12,32,0.06)',
+              'rgba(8,12,32,0.60)',
+              'rgba(8,12,32,0.90)',
+            ]}
+            locations={[0, 0.42, 0.72, 1]}
             style={StyleSheet.absoluteFill}
             start={{ x: 0, y: 0 }}
             end={{ x: 0, y: 1 }}
           />
 
-          {/* Warm amber tint at the very bottom — reinforces travel warmth */}
+          {/* Warm amber accent at very bottom edge */}
           <LinearGradient
-            colors={['transparent', 'rgba(184,98,26,0.18)']}
+            colors={['transparent', 'rgba(184,98,26,0.20)']}
             style={StyleSheet.absoluteFill}
-            start={{ x: 0, y: 0.55 }}
+            start={{ x: 0, y: 0.68 }}
             end={{ x: 0, y: 1 }}
           />
 
           <View style={styles.heroInner}>
 
-            {/* Badge */}
+            {/* Badge — floats over the clear-photo area */}
             <View style={styles.newBadge}>
               <View style={styles.newBadgeDot} />
               <Text style={styles.newBadgeText}>NEW JOURNEY</Text>
             </View>
 
-            {/* Text + steps */}
+            {/* Bottom text block */}
             <View style={styles.heroContent}>
+
+              {/* Compact waypoint path replacing the 4-step list */}
+              <View style={styles.waypointRow}>
+                {WAYPOINTS.map((icon, i) => (
+                  <React.Fragment key={icon}>
+                    {i > 0 && <View style={styles.waypointLine} />}
+                    <View style={styles.waypointNode}>
+                      <Ionicons name={icon} size={11} color={Colors.accent} />
+                    </View>
+                  </React.Fragment>
+                ))}
+              </View>
+
               <Text style={styles.heroHeadline}>
                 Turn your trip into{'\n'}a StoryBook.
               </Text>
 
               <Text style={styles.heroDesc}>
-                Add your destination and travel dates. We'll turn your memories
-                into a beautiful travel journal automatically.
+                Create a journey and we'll automatically organize your memories
+                into a beautiful travel journal.
               </Text>
 
-              {/* Journey flow */}
-              <View style={styles.stepList}>
-                {STEPS.map((step, i) => (
-                  <View key={i} style={styles.stepRow}>
-                    <View style={styles.stepNum}>
-                      <Text style={styles.stepNumText}>{i + 1}</Text>
-                    </View>
-                    <Text style={styles.stepText}>{step}</Text>
-                  </View>
-                ))}
-              </View>
-
-              {/* CTA */}
               <TouchableOpacity
                 style={styles.heroCta}
                 activeOpacity={0.88}
                 onPress={onJourney}
               >
-                <Text style={styles.heroCtaText}>Start a Journey</Text>
+                <Text style={styles.heroCtaText}>Start Journey</Text>
                 <Ionicons name="arrow-forward" size={15} color={Colors.primary} />
               </TouchableOpacity>
-            </View>
 
+            </View>
           </View>
         </TouchableOpacity>
 
@@ -141,61 +173,80 @@ export default function CreateScreen() {
         {/* ── Secondary cards ───────────────────────────────────────────────── */}
         <View style={styles.secondaryRow}>
 
-          {/* Post */}
+          {/* ── Post ──────────────────────────────────────────────────────── */}
           <TouchableOpacity
             style={[styles.secondaryCard, { width: SEC_W }]}
             activeOpacity={0.92}
             onPress={onPost}
           >
-            <View style={styles.secIconBox}>
-              <Ionicons name="camera-outline" size={19} color={Colors.primary} />
-            </View>
-            <Text style={styles.secTitle}>Post</Text>
-            <Text style={styles.secDesc}>Photo, video or carousel.</Text>
-            <View style={styles.photoStack}>
-              {[
-                { bg: '#7B8EC8', rotate: '-6deg', left: 0  },
-                { bg: '#5A9B84', rotate: '-1deg', left: 10 },
-                { bg: Colors.accent, rotate: '5deg', left: 20 },
-              ].map((p, i) => (
-                <View
+            {/* Photo fan — the visual reads instantly as "share photos" */}
+            <View style={styles.fanContainer}>
+              {FAN_PHOTOS.map((p, i) => (
+                <LinearGradient
                   key={i}
+                  colors={p.colors}
                   style={[
-                    styles.photoThumb,
-                    { backgroundColor: p.bg, left: p.left, transform: [{ rotate: p.rotate }] },
+                    styles.fanPhoto,
+                    { transform: [{ translateX: p.tx }, { rotate: p.rotate }] },
                   ]}
-                />
+                  start={{ x: 0.2, y: 0 }}
+                  end={{ x: 0.8, y: 1 }}
+                >
+                  <Ionicons
+                    name="image-outline"
+                    size={13}
+                    color="rgba(255,255,255,0.40)"
+                  />
+                </LinearGradient>
               ))}
+            </View>
+
+            <View style={styles.secBottom}>
+              <View style={styles.secTitleRow}>
+                <Ionicons name="camera-outline" size={14} color={Colors.textSecondary} />
+                <Text style={styles.secTitle}>Post</Text>
+              </View>
+              <Text style={styles.secDesc}>Photos & videos</Text>
             </View>
           </TouchableOpacity>
 
-          {/* Moment */}
+          {/* ── Moment ────────────────────────────────────────────────────── */}
           <TouchableOpacity
             style={[styles.secondaryCard, { width: SEC_W }]}
             activeOpacity={0.92}
             onPress={onMoment}
           >
-            <View style={[styles.secIconBox, styles.momentIconBox]}>
-              <Ionicons name="flash-outline" size={19} color="#7B5CCC" />
-            </View>
-            <Text style={styles.secTitle}>Moment</Text>
-            <Text style={styles.secDesc}>Share right now.</Text>
-            <Text style={styles.expiryText}>Expires in 24h</Text>
-            <View style={styles.storyRow}>
-              {['#7B8EC8', '#5A9B84', Colors.accent].map((bg, i) => (
-                <View
+            {/* Story rings — reads instantly as "share a live moment" */}
+            <View style={styles.storyContainer}>
+              {STORY_PREVIEWS.map((s, i) => (
+                <LinearGradient
                   key={i}
+                  colors={s.colors}
                   style={[
-                    styles.storyCircle,
-                    { backgroundColor: bg, marginLeft: i > 0 ? -9 : 0, zIndex: 3 - i },
+                    styles.storyRing,
+                    { marginLeft: i > 0 ? -13 : 0, zIndex: 3 - i },
                   ]}
+                  start={{ x: 0.2, y: 0 }}
+                  end={{ x: 0.8, y: 1 }}
                 />
               ))}
+              {/* Live indicator */}
+              <View style={styles.liveChip}>
+                <View style={styles.liveDot} />
+                <Text style={styles.liveText}>NOW</Text>
+              </View>
+            </View>
+
+            <View style={styles.secBottom}>
+              <View style={styles.secTitleRow}>
+                <Ionicons name="flash-outline" size={14} color={Colors.textSecondary} />
+                <Text style={styles.secTitle}>Moment</Text>
+              </View>
+              <Text style={styles.secDesc}>Right now · 24h</Text>
             </View>
           </TouchableOpacity>
 
         </View>
-
       </View>
     </SafeAreaView>
   );
@@ -258,17 +309,18 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     justifyContent: 'space-between',
   },
+
   newBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(255,255,255,0.16)',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: BorderRadius.full,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.20)',
+    borderColor: 'rgba(255,255,255,0.22)',
   },
   newBadgeDot: {
     width: 6,
@@ -278,54 +330,46 @@ const styles = StyleSheet.create({
   },
   newBadgeText: {
     ...Typography.overline,
-    color: 'rgba(255,255,255,0.80)',
+    color: 'rgba(255,255,255,0.82)',
   },
 
   heroContent: {
     gap: 10,
   },
+
+  // Compact waypoint path — 4 icon dots joined by thin lines
+  waypointRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 0,
+  },
+  waypointNode: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: 'rgba(231,167,122,0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(231,167,122,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  waypointLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(231,167,122,0.28)',
+    marginHorizontal: 4,
+  },
+
   heroHeadline: {
-    ...Typography.title2,
+    ...Typography.title3,
     color: Colors.textInverse,
   },
   heroDesc: {
     ...Typography.footnote,
-    color: 'rgba(255,255,255,0.58)',
+    color: 'rgba(255,255,255,0.54)',
     lineHeight: 19,
   },
 
-  // Journey steps
-  stepList: {
-    gap: 7,
-    marginTop: 2,
-  },
-  stepRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 9,
-  },
-  stepNum: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: 'rgba(231,167,122,0.22)',
-    borderWidth: 1,
-    borderColor: 'rgba(231,167,122,0.40)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepNumText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: Colors.accent,
-    lineHeight: 12,
-  },
-  stepText: {
-    ...Typography.caption1,
-    color: 'rgba(255,255,255,0.70)',
-  },
-
-  // CTA
   heroCta: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -362,74 +406,91 @@ const styles = StyleSheet.create({
   secondaryCard: {
     backgroundColor: Colors.surface,
     borderRadius: BorderRadius.xl,
-    padding: Spacing.md,
+    overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.07,
     shadowRadius: 14,
     elevation: 3,
     borderWidth: 1,
     borderColor: Colors.borderLight,
-    minHeight: 148,
-    overflow: 'hidden',
+    minHeight: 152,
   },
-  secIconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: BorderRadius.sm,
-    backgroundColor: Colors.surfaceSecondary,
+  secBottom: {
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Spacing.md,
+    gap: 3,
+  },
+  secTitleRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.sm,
-  },
-  momentIconBox: {
-    backgroundColor: 'rgba(123,92,204,0.10)',
+    gap: 5,
   },
   secTitle: {
     ...Typography.headline,
     color: Colors.textPrimary,
-    marginBottom: 2,
   },
   secDesc: {
     ...Typography.footnote,
     color: Colors.textSecondary,
   },
-  expiryText: {
-    ...Typography.caption2,
-    color: Colors.textTertiary,
-    marginTop: 2,
-  },
 
-  // Photo stack
-  photoStack: {
-    position: 'absolute',
-    right: Spacing.md,
-    bottom: Spacing.md,
-    width: 62,
-    height: 40,
-  },
-  photoThumb: {
-    position: 'absolute',
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: Colors.surface,
-  },
-
-  // Story circles
-  storyRow: {
-    position: 'absolute',
-    right: Spacing.md,
-    bottom: Spacing.md,
-    flexDirection: 'row',
+  // ── Post photo fan ────────────────────────────────────────────────────────
+  fanContainer: {
+    height: 90,
     alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.sm,
   },
-  storyCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+  fanPhoto: {
+    position: 'absolute',
+    width: 54,
+    height: 64,
+    borderRadius: 9,
     borderWidth: 2,
     borderColor: Colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // ── Moment story rings ────────────────────────────────────────────────────
+  storyContainer: {
+    height: 90,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.sm,
+    gap: 0,
+  },
+  storyRing: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 2.5,
+    borderColor: Colors.surface,
+  },
+  liveChip: {
+    position: 'absolute',
+    bottom: 8,
+    right: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.full,
+  },
+  liveDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: Colors.success,
+  },
+  liveText: {
+    fontSize: 8,
+    fontWeight: '800',
+    color: Colors.textInverse,
+    letterSpacing: 0.8,
   },
 });
