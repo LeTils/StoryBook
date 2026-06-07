@@ -2,6 +2,7 @@ import React from 'react';
 import {
   View,
   Text,
+  Image,
   StyleSheet,
   TouchableOpacity,
   Alert,
@@ -14,26 +15,37 @@ import { Colors, Typography, Spacing, BorderRadius } from '../../src/constants';
 
 // ─── Dimensions ───────────────────────────────────────────────────────────────
 
-const { width: SCREEN_W } = Dimensions.get('window');
-const H_GUTTER = Spacing.lg;
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
+const H_GUTTER  = Spacing.lg;
 const CARD_W    = SCREEN_W - H_GUTTER * 2;
 const SEC_W     = (CARD_W - Spacing.md) / 2;
+// Hero height is a fixed proportion so the rest of the screen always shows.
+const HERO_H    = Math.round(SCREEN_H * 0.42);
 
-// ─── Journey benefits ─────────────────────────────────────────────────────────
+// ─── Travel image ─────────────────────────────────────────────────────────────
+//
+// A dramatic road-trip photo that immediately communicates "journey".
+// Replace with a locally bundled asset once the design team provides one.
 
-const BENEFITS = [
-  { icon: 'images-outline'   as const, label: 'Photos & Videos'      },
-  { icon: 'location-outline' as const, label: 'Places Visited'       },
-  { icon: 'navigate-outline' as const, label: 'Routes & Maps'        },
-  { icon: 'book-outline'     as const, label: 'Daily Travel Journal' },
+const TRAVEL_IMAGE = {
+  uri: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=900&q=80&auto=format&fit=crop',
+};
+
+// ─── Journey flow steps ───────────────────────────────────────────────────────
+
+const STEPS = [
+  'Choose a destination',
+  'Add your travel dates',
+  'Capture memories along the way',
+  'Get your StoryBook automatically',
 ];
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function CreateScreen() {
-  const onStoryBook = () => Alert.alert('StoryBook', 'Creation flow — coming soon.');
-  const onPost      = () => Alert.alert('Post',      'Media picker — coming soon.');
-  const onMoment    = () => Alert.alert('Moment',    'Quick capture — coming soon.');
+  const onJourney = () => Alert.alert('Journey', 'Journey setup — coming soon.');
+  const onPost    = () => Alert.alert('Post',    'Media picker — coming soon.');
+  const onMoment  = () => Alert.alert('Moment',  'Quick capture — coming soon.');
 
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
@@ -47,84 +59,78 @@ export default function CreateScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* ── StoryBook hero card ───────────────────────────────────────────
-            flex: 1 so it fills whatever space remains between the header and
-            the secondary row — no hard-coded height needed.                  */}
+        {/* ── Journey hero card ─────────────────────────────────────────────
+            Fixed height so the Quick Share section is always visible below. */}
         <TouchableOpacity
           style={styles.heroCard}
           activeOpacity={0.97}
-          onPress={onStoryBook}
+          onPress={onJourney}
         >
-          {/* Deep night-sky base */}
-          <LinearGradient
-            colors={['#232A62', '#161C42', '#0D1230']}
-            style={StyleSheet.absoluteFill}
-            start={{ x: 0.3, y: 0 }}
-            end={{ x: 0.7, y: 1 }}
-          />
+          {/* Travel photo background */}
+          <Image source={TRAVEL_IMAGE} style={StyleSheet.absoluteFill} resizeMode="cover" />
 
-          {/* Warm horizon glow — golden-hour atmosphere */}
+          {/* Full-card dark overlay — lifts legibility on any photo */}
           <LinearGradient
-            colors={['transparent', 'rgba(184,98,26,0.30)', 'rgba(184,98,26,0.08)']}
+            colors={['rgba(10,14,38,0.30)', 'rgba(10,14,38,0.78)']}
             style={StyleSheet.absoluteFill}
-            start={{ x: 0.8, y: 1 }}
-            end={{ x: 0.1, y: 0.3 }}
-          />
-
-          {/* Bottom readability scrim */}
-          <LinearGradient
-            colors={['transparent', 'rgba(10,14,38,0.80)']}
-            style={[StyleSheet.absoluteFill, { top: '45%' }]}
             start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+          />
+
+          {/* Warm amber tint at the very bottom — reinforces travel warmth */}
+          <LinearGradient
+            colors={['transparent', 'rgba(184,98,26,0.18)']}
+            style={StyleSheet.absoluteFill}
+            start={{ x: 0, y: 0.55 }}
             end={{ x: 0, y: 1 }}
           />
 
           <View style={styles.heroInner}>
 
-            {/* Badge ───────────────────────────────────────────────────── */}
-            <View style={styles.journeyBadge}>
-              <View style={styles.journeyDot} />
-              <Text style={styles.journeyBadgeText}>NEW JOURNEY</Text>
+            {/* Badge */}
+            <View style={styles.newBadge}>
+              <View style={styles.newBadgeDot} />
+              <Text style={styles.newBadgeText}>NEW JOURNEY</Text>
             </View>
 
-            {/* Headline + description ──────────────────────────────────── */}
-            <View style={styles.heroMid}>
+            {/* Text + steps */}
+            <View style={styles.heroContent}>
               <Text style={styles.heroHeadline}>
                 Turn your trip into{'\n'}a StoryBook.
               </Text>
-              <Text style={styles.heroBody}>
-                Add your destination and travel dates. StoryBook will
-                automatically organize your photos, videos, places and routes
-                into a beautiful travel journal.
+
+              <Text style={styles.heroDesc}>
+                Add your destination and travel dates. We'll turn your memories
+                into a beautiful travel journal automatically.
               </Text>
-            </View>
 
-            {/* Benefits grid ───────────────────────────────────────────── */}
-            <View style={styles.benefitsGrid}>
-              {BENEFITS.map(b => (
-                <View key={b.label} style={styles.benefitItem}>
-                  <View style={styles.benefitIconBox}>
-                    <Ionicons name={b.icon} size={13} color={Colors.accent} />
+              {/* Journey flow */}
+              <View style={styles.stepList}>
+                {STEPS.map((step, i) => (
+                  <View key={i} style={styles.stepRow}>
+                    <View style={styles.stepNum}>
+                      <Text style={styles.stepNumText}>{i + 1}</Text>
+                    </View>
+                    <Text style={styles.stepText}>{step}</Text>
                   </View>
-                  <Text style={styles.benefitLabel}>{b.label}</Text>
-                </View>
-              ))}
-            </View>
+                ))}
+              </View>
 
-            {/* CTA ─────────────────────────────────────────────────────── */}
-            <TouchableOpacity
-              style={styles.heroCta}
-              activeOpacity={0.88}
-              onPress={onStoryBook}
-            >
-              <Text style={styles.heroCtaText}>Start Journey</Text>
-              <Ionicons name="arrow-forward" size={15} color={Colors.primary} />
-            </TouchableOpacity>
+              {/* CTA */}
+              <TouchableOpacity
+                style={styles.heroCta}
+                activeOpacity={0.88}
+                onPress={onJourney}
+              >
+                <Text style={styles.heroCtaText}>Start a Journey</Text>
+                <Ionicons name="arrow-forward" size={15} color={Colors.primary} />
+              </TouchableOpacity>
+            </View>
 
           </View>
         </TouchableOpacity>
 
-        {/* ── Quick Share section header ───────────────────────────────── */}
+        {/* ── Quick Share ───────────────────────────────────────────────────── */}
         <View style={styles.quickShareHead}>
           <Text style={styles.quickShareTitle}>Quick Share</Text>
           <Text style={styles.quickShareSubtitle}>
@@ -132,7 +138,7 @@ export default function CreateScreen() {
           </Text>
         </View>
 
-        {/* ── Secondary row ─────────────────────────────────────────────── */}
+        {/* ── Secondary cards ───────────────────────────────────────────────── */}
         <View style={styles.secondaryRow}>
 
           {/* Post */}
@@ -146,13 +152,11 @@ export default function CreateScreen() {
             </View>
             <Text style={styles.secTitle}>Post</Text>
             <Text style={styles.secDesc}>Photo, video or carousel.</Text>
-
-            {/* Stacked photo thumbnails */}
             <View style={styles.photoStack}>
               {[
                 { bg: '#7B8EC8', rotate: '-6deg', left: 0  },
                 { bg: '#5A9B84', rotate: '-1deg', left: 10 },
-                { bg: Colors.accent, rotate: '5deg',  left: 20 },
+                { bg: Colors.accent, rotate: '5deg', left: 20 },
               ].map((p, i) => (
                 <View
                   key={i}
@@ -177,8 +181,6 @@ export default function CreateScreen() {
             <Text style={styles.secTitle}>Moment</Text>
             <Text style={styles.secDesc}>Share right now.</Text>
             <Text style={styles.expiryText}>Expires in 24h</Text>
-
-            {/* Overlapping story circles */}
             <View style={styles.storyRow}>
               {['#7B8EC8', '#5A9B84', Colors.accent].map((bg, i) => (
                 <View
@@ -242,86 +244,85 @@ const styles = StyleSheet.create({
 
   // ── Hero card ─────────────────────────────────────────────────────────────
   heroCard: {
-    flex: 1,
+    height: HERO_H,
     borderRadius: BorderRadius.xl,
     overflow: 'hidden',
     shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 14 },
-    shadowOpacity: 0.26,
-    shadowRadius: 36,
-    elevation: 12,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.22,
+    shadowRadius: 30,
+    elevation: 10,
   },
   heroInner: {
     flex: 1,
     padding: Spacing.lg,
-    paddingBottom: Spacing.md,
     justifyContent: 'space-between',
   },
-
-  journeyBadge: {
+  newBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: 'rgba(255,255,255,0.10)',
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255,255,255,0.15)',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: BorderRadius.full,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
+    borderColor: 'rgba(255,255,255,0.20)',
   },
-  journeyDot: {
+  newBadgeDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
     backgroundColor: Colors.accent,
   },
-  journeyBadgeText: {
+  newBadgeText: {
     ...Typography.overline,
-    color: 'rgba(255,255,255,0.70)',
+    color: 'rgba(255,255,255,0.80)',
   },
-  heroMid: {
+
+  heroContent: {
     gap: 10,
   },
   heroHeadline: {
     ...Typography.title2,
     color: Colors.textInverse,
   },
-  heroBody: {
+  heroDesc: {
     ...Typography.footnote,
-    color: 'rgba(255,255,255,0.52)',
+    color: 'rgba(255,255,255,0.58)',
     lineHeight: 19,
   },
 
-  // Benefits
-  benefitsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
+  // Journey steps
+  stepList: {
+    gap: 7,
+    marginTop: 2,
   },
-  benefitItem: {
+  stepRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    width: '47%',
-    backgroundColor: 'rgba(255,255,255,0.07)',
-    borderRadius: BorderRadius.sm,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    gap: 9,
   },
-  benefitIconBox: {
+  stepNum: {
     width: 20,
     height: 20,
-    borderRadius: 5,
-    backgroundColor: 'rgba(231,167,122,0.15)',
+    borderRadius: 10,
+    backgroundColor: 'rgba(231,167,122,0.22)',
+    borderWidth: 1,
+    borderColor: 'rgba(231,167,122,0.40)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  benefitLabel: {
-    ...Typography.caption2,
-    color: 'rgba(255,255,255,0.62)',
-    flex: 1,
+  stepNumText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: Colors.accent,
+    lineHeight: 12,
+  },
+  stepText: {
+    ...Typography.caption1,
+    color: 'rgba(255,255,255,0.70)',
   },
 
   // CTA
@@ -332,14 +333,15 @@ const styles = StyleSheet.create({
     gap: 8,
     backgroundColor: Colors.accent,
     borderRadius: BorderRadius.md,
-    paddingVertical: 14,
+    paddingVertical: 13,
+    marginTop: 2,
   },
   heroCtaText: {
     ...Typography.headline,
     color: Colors.primary,
   },
 
-  // ── Quick Share section ───────────────────────────────────────────────────
+  // ── Quick Share ───────────────────────────────────────────────────────────
   quickShareHead: {
     gap: 3,
   },
@@ -352,7 +354,7 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
 
-  // ── Secondary row ─────────────────────────────────────────────────────────
+  // ── Secondary cards ───────────────────────────────────────────────────────
   secondaryRow: {
     flexDirection: 'row',
     gap: Spacing.md,
@@ -361,7 +363,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderRadius: BorderRadius.xl,
     padding: Spacing.md,
-    paddingBottom: Spacing.md,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
