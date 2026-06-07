@@ -19,30 +19,13 @@ const H_GUTTER = Spacing.lg;
 const CARD_W    = SCREEN_W - H_GUTTER * 2;
 const SEC_W     = (CARD_W - Spacing.md) / 2;
 
-// ─── Mock StoryBook journal data ──────────────────────────────────────────────
-//
-// Rendered inside the hero card so users immediately understand what a
-// StoryBook looks like — not a feature list, but real trip data.
+// ─── Journey benefits ─────────────────────────────────────────────────────────
 
-const PREVIEW = {
-  title     : 'Italy 2027',
-  location  : 'Florence · Tuscany',
-  day       : 4,
-  totalDays : 10,
-  note      : 'Golden hour at Piazzale Michelangelo. Wine on rooftops.',
-  photos    : 32,
-  videos    : 8,
-  places    : 4,
-  km        : 18,
-};
-
-// ─── Stats data ───────────────────────────────────────────────────────────────
-
-const STATS = [
-  { icon: 'camera-outline'   as const, value: PREVIEW.photos,          label: 'Photos'  },
-  { icon: 'videocam-outline' as const, value: PREVIEW.videos,          label: 'Videos'  },
-  { icon: 'location-outline' as const, value: PREVIEW.places,          label: 'Places'  },
-  { icon: 'walk-outline'     as const, value: `${PREVIEW.km} km`,      label: 'Walked'  },
+const BENEFITS = [
+  { icon: 'images-outline'   as const, label: 'Photos & Videos'      },
+  { icon: 'location-outline' as const, label: 'Places Visited'       },
+  { icon: 'navigate-outline' as const, label: 'Routes & Maps'        },
+  { icon: 'book-outline'     as const, label: 'Daily Travel Journal' },
 ];
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -98,55 +81,33 @@ export default function CreateScreen() {
 
           <View style={styles.heroInner}>
 
-            {/* Top row ─────────────────────────────────────────────────── */}
-            <View style={styles.heroTopRow}>
-              <View style={styles.journeyBadge}>
-                <View style={styles.journeyDot} />
-                <Text style={styles.journeyBadgeText}>JOURNEY PREVIEW</Text>
-              </View>
-              <View style={styles.dayPill}>
-                <Text style={styles.dayPillText}>
-                  Day {PREVIEW.day} / {PREVIEW.totalDays}
-                </Text>
-              </View>
+            {/* Badge ───────────────────────────────────────────────────── */}
+            <View style={styles.journeyBadge}>
+              <View style={styles.journeyDot} />
+              <Text style={styles.journeyBadgeText}>NEW JOURNEY</Text>
             </View>
 
-            {/* Spacer — pushes main text toward vertical center */}
-            <View style={{ flex: 1 }} />
-
-            {/* Location + title + note ─────────────────────────────────── */}
+            {/* Headline + description ──────────────────────────────────── */}
             <View style={styles.heroMid}>
-              <View style={styles.locationRow}>
-                <Ionicons
-                  name="location-outline"
-                  size={12}
-                  color={Colors.accent}
-                />
-                <Text style={styles.locationText}>{PREVIEW.location}</Text>
-              </View>
-
-              <Text style={styles.heroTitle}>{PREVIEW.title}</Text>
-
-              <Text style={styles.heroNote} numberOfLines={1}>
-                {PREVIEW.note}
+              <Text style={styles.heroHeadline}>
+                Turn your trip into{'\n'}a StoryBook.
+              </Text>
+              <Text style={styles.heroBody}>
+                Add your destination and travel dates. StoryBook will
+                automatically organize your photos, videos, places and routes
+                into a beautiful travel journal.
               </Text>
             </View>
 
-            {/* Stats ───────────────────────────────────────────────────── */}
-            <View style={styles.statsRow}>
-              {STATS.map((s, i) => (
-                <React.Fragment key={s.label}>
-                  {i > 0 && <View style={styles.statDivider} />}
-                  <View style={styles.statItem}>
-                    <Ionicons
-                      name={s.icon}
-                      size={14}
-                      color="rgba(255,255,255,0.50)"
-                    />
-                    <Text style={styles.statValue}>{s.value}</Text>
-                    <Text style={styles.statLabel}>{s.label}</Text>
+            {/* Benefits grid ───────────────────────────────────────────── */}
+            <View style={styles.benefitsGrid}>
+              {BENEFITS.map(b => (
+                <View key={b.label} style={styles.benefitItem}>
+                  <View style={styles.benefitIconBox}>
+                    <Ionicons name={b.icon} size={13} color={Colors.accent} />
                   </View>
-                </React.Fragment>
+                  <Text style={styles.benefitLabel}>{b.label}</Text>
+                </View>
               ))}
             </View>
 
@@ -294,13 +255,9 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: Spacing.lg,
     paddingBottom: Spacing.md,
-  },
-
-  heroTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
   },
+
   journeyBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -322,71 +279,49 @@ const styles = StyleSheet.create({
     ...Typography.overline,
     color: 'rgba(255,255,255,0.70)',
   },
-  dayPill: {
-    backgroundColor: 'rgba(255,255,255,0.10)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-  },
-  dayPillText: {
-    ...Typography.caption2,
-    color: 'rgba(255,255,255,0.55)',
-  },
-
   heroMid: {
-    gap: 6,
-    marginBottom: Spacing.md,
+    gap: 10,
   },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  locationText: {
-    ...Typography.caption1,
-    color: Colors.accent,
-    fontWeight: '600',
-  },
-  heroTitle: {
-    ...Typography.title1,
+  heroHeadline: {
+    ...Typography.title2,
     color: Colors.textInverse,
   },
-  heroNote: {
-    ...Typography.callout,
-    color: 'rgba(255,255,255,0.48)',
-    fontStyle: 'italic',
+  heroBody: {
+    ...Typography.footnote,
+    color: 'rgba(255,255,255,0.52)',
+    lineHeight: 19,
   },
 
-  // Stats
-  statsRow: {
+  // Benefits
+  benefitsGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
+  benefitItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    width: '47%',
     backgroundColor: 'rgba(255,255,255,0.07)',
-    borderRadius: BorderRadius.md,
-    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.sm,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
-    marginBottom: Spacing.md,
   },
-  statItem: {
-    flex: 1,
+  benefitIconBox: {
+    width: 20,
+    height: 20,
+    borderRadius: 5,
+    backgroundColor: 'rgba(231,167,122,0.15)',
     alignItems: 'center',
-    gap: 3,
+    justifyContent: 'center',
   },
-  statValue: {
-    ...Typography.headline,
-    color: Colors.textInverse,
-  },
-  statLabel: {
+  benefitLabel: {
     ...Typography.caption2,
-    color: 'rgba(255,255,255,0.38)',
-  },
-  statDivider: {
-    width: 1,
-    height: 32,
-    backgroundColor: 'rgba(255,255,255,0.10)',
-    alignSelf: 'center',
+    color: 'rgba(255,255,255,0.62)',
+    flex: 1,
   },
 
   // CTA
